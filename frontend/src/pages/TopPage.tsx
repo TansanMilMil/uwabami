@@ -120,7 +120,7 @@ export default function TopPage() {
           ))}
         </div>
       ) : drinks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           {drinks.map(drink => (
             <div
               key={drink.id}
@@ -135,7 +135,7 @@ export default function TopPage() {
               }}
               className="cursor-pointer"
             >
-              <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-row">
+              <Card className="h-[250px] border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-row">
                 {drink.image_path ? (
                   <div className="w-28 sm:w-32 shrink-0 overflow-hidden">
                     <img src={`/uploads/${drink.image_path}`} alt={drink.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
