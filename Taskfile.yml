@@ -80,10 +80,10 @@ tasks:
       - bash scripts/deploy.sh
 
   db:backup:
-    desc: "recipes.db を日時付きでバックアップ (./backups/ に保存)"
+    desc: "drinks.db を日時付きでバックアップ (./backups/ に保存)"
     cmds:
       - |
         mkdir -p backups
         dest="backups/recipes_$(date +%Y%m%d_%H%M%S).db"
-        cp backend/db/recipes.db "$dest"
+        cp backend/db/drinks.db "$dest"
         echo "バックアップ完了: $dest"

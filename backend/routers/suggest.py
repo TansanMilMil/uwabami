@@ -11,7 +11,7 @@ from routers.auth import get_current_username
 
 router = APIRouter()
 
-OPENAI_API_KEY = os.environ.get("NINA_NJAA_OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("UWABAMI_OPENAI_API_KEY")
 
 KEYWORD_EXTRACT_PROMPT = (
     "あなたはレシピ検索アシスタントです。\n"

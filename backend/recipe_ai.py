@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from openai import OpenAI
 
 
-OPENAI_API_KEY = os.environ.get("NINA_NJAA_OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("UWABAMI_OPENAI_API_KEY")
 
 RECIPE_JSON_SCHEMA = {
     "type": "object",

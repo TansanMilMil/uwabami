@@ -12,10 +12,10 @@ from models import UserCreate, User
 
 limiter = Limiter(key_func=get_remote_address)
 
-JWT_SECRET_KEY = os.environ.get("NINA_NJAA_JWT_SECRET_KEY", "dummy_secret_key")
+JWT_SECRET_KEY = os.environ.get("UWABAMI_JWT_SECRET_KEY", "dummy_secret_key")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_DAYS = int(os.environ.get("NINA_NJAA_JWT_EXPIRE_DAYS", "7"))
-SECURE_COOKIE = os.environ.get("NINA_NJAA_SECURE_COOKIE", "true").lower() == "true"
+JWT_EXPIRE_DAYS = int(os.environ.get("UWABAMI_JWT_EXPIRE_DAYS", "7"))
+SECURE_COOKIE = os.environ.get("UWABAMI_SECURE_COOKIE", "true").lower() == "true"
 
 
 def hash_password(password: str) -> str:
