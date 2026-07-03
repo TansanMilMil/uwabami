@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Search, Wine, Beer, MapPin, Tag } from 'lucide-react'
+import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -114,7 +114,7 @@ export default function TopPage() {
                 )}
                 <CardContent className="p-5 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors line-clamp-1" title={drink.name}>
+                    <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors">
                       {drink.name}
                     </h3>
                     <Badge variant="outline" className="bg-zinc-950 border-zinc-700 text-zinc-300 whitespace-nowrap">
@@ -126,6 +126,13 @@ export default function TopPage() {
                     <div className="flex items-center gap-1.5 text-sm text-zinc-400 mb-2">
                       <MapPin className="h-3.5 w-3.5 text-zinc-500" />
                       <span className="truncate">{drink.origin}</span>
+                    </div>
+                  )}
+
+                  {drink.latest_memo && (
+                    <div className="flex items-start gap-1.5 text-sm text-zinc-400 mb-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
+                      <span className="line-clamp-2">{drink.latest_memo}</span>
                     </div>
                   )}
 

@@ -14,6 +14,7 @@ export interface Drink {
   image_path?: string | null
   created_by: number
   taste_types: TasteType[]
+  latest_memo?: string | null
 }
 
 export interface TasteType {

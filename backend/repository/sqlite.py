@@ -92,12 +92,19 @@ class SQLiteDrinkRepository:
             return cur.lastrowid
 
     def get_drinks(self, status: Optional[str] = None) -> List[dict]:
-        query = "SELECT * FROM drinks"
+        query = """
+            SELECT d.*,
+                (SELECT dl.memo FROM drink_logs dl
+                 WHERE dl.drink_id = d.id
+                 ORDER BY dl.drunk_date DESC, dl.id DESC
+                 LIMIT 1) AS latest_memo
+            FROM drinks d
+        """
         params = []
         if status:
-            query += " WHERE status = ?"
+            query += " WHERE d.status = ?"
             params.append(status)
-        query += " ORDER BY id DESC"
+        query += " ORDER BY d.id DESC"
 
         with self._connect() as con:
             rows = con.execute(query, tuple(params)).fetchall()
