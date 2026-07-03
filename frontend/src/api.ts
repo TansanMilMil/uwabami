@@ -94,10 +94,11 @@ export async function checkAuth(): Promise<string | null> {
 }
 
 // Drinks
-export async function getDrinks(query?: string, status?: string): Promise<Drink[]> {
+export async function getDrinks(query?: string, status?: string, category?: string): Promise<Drink[]> {
   const params = new URLSearchParams()
   if (query) params.append('q', query)
   if (status) params.append('status', status)
+  if (category) params.append('category', category)
   const qs = params.toString()
   const path = qs ? `/drinks?${qs}` : '/drinks'
   return fetchJsonOr<Drink[]>(path, [])

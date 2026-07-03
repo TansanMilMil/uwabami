@@ -8,8 +8,8 @@ from routers.auth import get_current_user, get_optional_user
 router = APIRouter()
 
 @router.get("/api/drinks")
-def get_drinks(status: Optional[str] = Query(None)):
-    drinks = repo.get_drinks(status=status)
+def get_drinks(q: Optional[str] = Query(None), status: Optional[str] = Query(None), category: Optional[str] = Query(None)):
+    drinks = repo.get_drinks(status=status, q=q, category=category)
     return drinks
 
 @router.post("/api/drinks")

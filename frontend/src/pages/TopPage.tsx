@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getDrinks, Drink } from '../api'
+import { getDrinks, getDrinkCategories, Drink } from '../api'
 import { UserContext } from '../contexts/UserContext'
 import DrinkModal from '../components/DrinkModal'
 
@@ -14,6 +14,8 @@ export default function TopPage() {
   const currentUsername = useContext(UserContext)
   const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>('drunk')
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
+  const [categories, setCategories] = useState<string[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -21,7 +23,7 @@ export default function TopPage() {
   const loadDrinks = async () => {
     setLoading(true)
     try {
-      const data = await getDrinks(search, activeTab)
+      const data = await getDrinks(search, activeTab, category)
       setDrinks(data)
     } catch (e) {
       console.error(e)
@@ -31,11 +33,15 @@ export default function TopPage() {
   }
 
   useEffect(() => {
+    getDrinkCategories().then(setCategories).catch(console.error)
+  }, [])
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       loadDrinks()
     }, 300)
     return () => clearTimeout(timer)
-  }, [activeTab, search])
+  }, [activeTab, search, category])
 
   const handleSaved = (drink: Drink) => {
     setShowModal(false)
@@ -83,14 +89,26 @@ export default function TopPage() {
             呑みたい
           </button>
         </div>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-          <Input
-            placeholder="お酒の名前で検索..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 bg-zinc-950/50 border-zinc-700 focus-visible:ring-amber-500/50"
-          />
+        <div className="flex w-full sm:w-auto gap-2">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input
+              placeholder="お酒の名前で検索..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 bg-zinc-950/50 border-zinc-700 focus-visible:ring-amber-500/50"
+            />
+          </div>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
+          >
+            <option value="">すべての種類</option>
+            {categories.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
       </div>
 

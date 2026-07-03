@@ -91,7 +91,7 @@ class SQLiteDrinkRepository:
             cur = con.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
             return cur.lastrowid
 
-    def get_drinks(self, status: Optional[str] = None) -> List[dict]:
+    def get_drinks(self, status: Optional[str] = None, q: Optional[str] = None, category: Optional[str] = None) -> List[dict]:
         query = """
             SELECT d.*,
                 (SELECT dl.memo FROM drink_logs dl
@@ -100,10 +100,19 @@ class SQLiteDrinkRepository:
                  LIMIT 1) AS latest_memo
             FROM drinks d
         """
+        conditions = []
         params = []
         if status:
-            query += " WHERE d.status = ?"
+            conditions.append("d.status = ?")
             params.append(status)
+        if q:
+            conditions.append("d.name LIKE ?")
+            params.append(f"%{q}%")
+        if category:
+            conditions.append("d.category = ?")
+            params.append(category)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY d.id DESC"
 
         with self._connect() as con:
