@@ -1,0 +1,50 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      - NINA_NJAA_BASIC_AUTH_USER=${NINA_NJAA_BASIC_AUTH_USER}
+      - NINA_NJAA_BASIC_AUTH_PASS=${NINA_NJAA_BASIC_AUTH_PASS}
+      - NINA_NJAA_DB_PATH=/app/db/recipes.db
+      - NINA_NJAA_OPENAI_API_KEY=${NINA_NJAA_OPENAI_API_KEY}
+      - NINA_NJAA_JWT_SECRET_KEY=${NINA_NJAA_JWT_SECRET_KEY}
+    volumes:
+      - ./db:/app/db
+      - uploads:/app/uploads
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - static:/static
+    networks:
+      - app-net
+
+  nginx:
+    build:
+      context: ./nginx
+    environment:
+      - NINA_NJAA_CLOUDFRONT_SECRET=${NINA_NJAA_CLOUDFRONT_SECRET:-}
+    ports:
+      - "8090:80"
+    volumes:
+      - static:/usr/share/nginx/html
+      - uploads:/usr/share/nginx/uploads
+    depends_on:
+      frontend:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - app-net
+    restart: unless-stopped
+
+volumes:
+  static:
+  uploads:
+
+networks:
+  app-net:
+    driver: bridge

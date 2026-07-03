@@ -1,0 +1,29 @@
+# Node.js
+node_modules/
+dist/
+build/
+.npm/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# Database
+db/*.db
+db/*.sqlite3
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Project specifics
+*.log
+coverage/
+
+backend/uploads/*

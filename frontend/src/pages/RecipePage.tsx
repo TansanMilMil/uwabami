@@ -1,0 +1,538 @@
+import { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Star, X } from 'lucide-react'
+import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe, uploadRecipeImage, deleteRecipeImage } from '../api'
+import type { RecipeDetail, Ingredient, CookedLogEntry } from '../api'
+import BookmarkButton from '../components/BookmarkButton'
+import { RecipePageSkeleton } from '../components/Skeleton'
+import { useBookmarks } from '../hooks/useBookmarks'
+import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { useCurrentUser } from '../contexts/UserContext'
+
+function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
+  const groups: [string | null, Ingredient[]][] = []
+  for (const ing of ingredients) {
+    const key = ing.group_name ?? null
+    const last = groups[groups.length - 1]
+    if (last && last[0] === key) {
+      last[1].push(ing)
+    } else {
+      groups.push([key, [ing]])
+    }
+  }
+  return groups
+}
+
+interface EditIngredient {
+  group_name: string
+  name: string
+  quantity: string
+  unit: string
+  note: string
+}
+
+interface EditStep {
+  description: string
+}
+
+interface EditState {
+  name: string
+  source_url: string
+  servings: string
+  ingredients: EditIngredient[]
+  steps: EditStep[]
+}
+
+function recipeToEditState(recipe: RecipeDetail): EditState {
+  return {
+    name: recipe.name ?? '',
+    source_url: recipe.source_url ?? '',
+    servings: recipe.servings != null ? String(recipe.servings) : '',
+    ingredients: recipe.ingredients.map(ing => ({
+      group_name: ing.group_name ?? '',
+      name: ing.name ?? '',
+      quantity: ing.quantity ?? '',
+      unit: ing.unit ?? '',
+      note: ing.note ?? '',
+    })),
+    steps: recipe.steps.map(step => ({ description: step.description ?? '' })),
+  }
+}
+
+export default function RecipePage() {
+  const { id } = useParams<{ id: string }>()
+  const [recipe, setRecipe] = useState<RecipeDetail | null>(null)
+  const [error, setError] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editState, setEditState] = useState<EditState | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const navigate = useNavigate()
+  const [cookLogging, setCookLogging] = useState(false)
+  const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
+  const [isCookLogModalOpen, setIsCookLogModalOpen] = useState(false)
+  const [cookLogMemo, setCookLogMemo] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const { isBookmarked, toggle } = useBookmarks()
+  const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
+  const currentUsername = useCurrentUser()
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    setRecipe(null)
+    setError(false)
+    setIsEditing(false)
+    getRecipe(Number(id))
+      .then(data => {
+        if (!cancelled) {
+          setRecipe(data)
+          recordRecipeViewed(Number(id)).catch(() => {})
+          if (currentUsername) {
+            getCookedLogForRecipe(Number(id)).then(log => {
+              if (!cancelled) setCookedLog(log)
+            }).catch(() => {})
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError(true)
+      })
+    return () => { cancelled = true }
+  }, [id, currentUsername])
+
+  function startEditing() {
+    if (!recipe) return
+    setEditState(recipeToEditState(recipe))
+    setIsEditing(true)
+  }
+
+  function cancelEditing() {
+    setIsEditing(false)
+    setEditState(null)
+  }
+
+  function handleCookLogClick() {
+    setIsCookLogModalOpen(true)
+    setCookLogMemo('')
+  }
+
+  async function submitCookLog() {
+    if (!id) return
+    setCookLogging(true)
+    try {
+      await addCookedLog(Number(id), cookLogMemo)
+      toast.success('料理記録を追加しました！')
+      setIsCookLogModalOpen(false)
+      setCookLogMemo('')
+      getCookedLogForRecipe(Number(id)).then(log => setCookedLog(log)).catch(() => {})
+    } catch {
+      toast.error('記録に失敗しました')
+    } finally {
+      setCookLogging(false)
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+    setImageUploading(true)
+    try {
+      const result = await uploadRecipeImage(Number(id), file)
+      setRecipe(prev => prev ? { ...prev, image_path: `${result.image_path}?t=${Date.now()}` } : prev)
+      toast.success('画像をアップロードしました')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'アップロードに失敗しました'
+      toast.error(msg)
+    } finally {
+      setImageUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDeleteImage() {
+    if (!id) return
+    try {
+      await deleteRecipeImage(Number(id))
+      setRecipe(prev => prev ? { ...prev, image_path: null } : prev)
+      toast.success('画像を削除しました')
+    } catch {
+      toast.error('削除に失敗しました')
+    }
+  }
+
+  async function handleDelete() {
+    if (!id || !window.confirm(`「${recipe?.name}」を削除しますか？`)) return
+    setDeleting(true)
+    try {
+      const name = recipe?.name
+      await deleteRecipe(Number(id))
+      toast.success(`「${name}」を削除しました`)
+      navigate('/')
+    } catch {
+      toast.error('削除に失敗しました')
+      setDeleting(false)
+    }
+  }
+
+  async function saveEditing() {
+    if (!editState || !id) return
+    setSaving(true)
+    try {
+      const updated = await updateRecipe(Number(id), {
+        name: editState.name,
+        source_url: editState.source_url,
+        servings: editState.servings !== '' ? Number(editState.servings) : null,
+        ingredients: editState.ingredients.map((ing, i) => ({
+          group_name: ing.group_name || null,
+          name: ing.name,
+          quantity: ing.quantity || null,
+          unit: ing.unit || null,
+          note: ing.note || null,
+          sort_order: i,
+        })),
+        steps: editState.steps.map((step, i) => ({
+          step_number: i + 1,
+          description: step.description,
+        })),
+      })
+      setRecipe({ ...updated, image_path: recipe?.image_path ?? null })
+      setIsEditing(false)
+      setEditState(null)
+    } catch {
+      alert('保存に失敗しました')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function updateField<K extends keyof EditState>(key: K, value: EditState[K]) {
+    setEditState(prev => prev ? { ...prev, [key]: value } : prev)
+  }
+
+  function updateIngredient(index: number, field: keyof EditIngredient, value: string) {
+    setEditState(prev => {
+      if (!prev) return prev
+      const ingredients = [...prev.ingredients]
+      ingredients[index] = { ...ingredients[index], [field]: value }
+      return { ...prev, ingredients }
+    })
+  }
+
+  function addIngredient() {
+    setEditState(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        ingredients: [...prev.ingredients, { group_name: '', name: '', quantity: '', unit: '', note: '' }],
+      }
+    })
+  }
+
+  function removeIngredient(index: number) {
+    setEditState(prev => {
+      if (!prev) return prev
+      return { ...prev, ingredients: prev.ingredients.filter((_, i) => i !== index) }
+    })
+  }
+
+  function updateStep(index: number, value: string) {
+    setEditState(prev => {
+      if (!prev) return prev
+      const steps = [...prev.steps]
+      steps[index] = { description: value }
+      return { ...prev, steps }
+    })
+  }
+
+  function addStep() {
+    setEditState(prev => {
+      if (!prev) return prev
+      return { ...prev, steps: [...prev.steps, { description: '' }] }
+    })
+  }
+
+  function removeStep(index: number) {
+    setEditState(prev => {
+      if (!prev) return prev
+      return { ...prev, steps: prev.steps.filter((_, i) => i !== index) }
+    })
+  }
+
+  if (error) return <p className="text-muted-foreground">レシピが見つかりませんでした</p>
+  if (!recipe) return <RecipePageSkeleton />
+
+  const canEdit = currentUsername !== null && (recipe.username == null || recipe.username === currentUsername)
+
+  if (isEditing && editState) {
+    return (
+      <article className="flex flex-col gap-5">
+        <div className="flex items-center gap-2">
+          <h1 className="flex-1 text-2xl font-bold">編集</h1>
+          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={saving || deleting}>
+            {deleting ? '削除中...' : '削除'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={cancelEditing} disabled={saving || deleting}>
+            キャンセル
+          </Button>
+          <Button size="sm" onClick={saveEditing} disabled={saving || deleting}>
+            {saving ? '保存中...' : '保存'}
+          </Button>
+        </div>
+
+        {recipe.image_path ? (
+          <div className="relative">
+            <img
+              src={`/uploads/${recipe.image_path}`}
+              alt={recipe.name ?? ''}
+              className="w-full rounded-lg object-cover max-h-64"
+            />
+            <button
+              type="button"
+              onClick={handleDeleteImage}
+              className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70"
+              aria-label="画像を削除"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted py-6 text-sm text-muted-foreground hover:border-primary hover:text-primary">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={imageUploading} />
+            {imageUploading ? 'アップロード中...' : '画像を追加'}
+          </label>
+        )}
+
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">レシピ名</span>
+          <Input value={editState.name} onChange={e => updateField('name', e.target.value)} />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">元レシピURL</span>
+          <Input value={editState.source_url} onChange={e => updateField('source_url', e.target.value)} />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">人数</span>
+          <Input
+            type="number"
+            value={editState.servings}
+            onChange={e => updateField('servings', e.target.value)}
+            className="w-24"
+          />
+        </label>
+
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">材料</h2>
+          {editState.ingredients.map((ing, i) => (
+            <div key={i} className="mb-2 flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="グループ名"
+                value={ing.group_name}
+                onChange={e => updateIngredient(i, 'group_name', e.target.value)}
+                className="w-28"
+              />
+              <Input
+                placeholder="材料名"
+                value={ing.name}
+                onChange={e => updateIngredient(i, 'name', e.target.value)}
+                className="min-w-28 flex-1"
+              />
+              <Input
+                placeholder="分量"
+                value={ing.quantity}
+                onChange={e => updateIngredient(i, 'quantity', e.target.value)}
+                className="w-20"
+              />
+              <Input
+                placeholder="単位"
+                value={ing.unit}
+                onChange={e => updateIngredient(i, 'unit', e.target.value)}
+                className="w-16"
+              />
+              <Input
+                placeholder="備考"
+                value={ing.note}
+                onChange={e => updateIngredient(i, 'note', e.target.value)}
+                className="w-28"
+              />
+              <Button variant="ghost" size="sm" onClick={() => removeIngredient(i)}>削除</Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addIngredient}>+ 材料を追加</Button>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">作り方</h2>
+          {editState.steps.map((step, i) => (
+            <div key={i} className="mb-2 flex items-start gap-2">
+              <span className="min-w-6 pt-1.5 text-sm">{i + 1}.</span>
+              <textarea
+                value={step.description}
+                onChange={e => updateStep(i, e.target.value)}
+                rows={2}
+                className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addStep}>+ 手順を追加</Button>
+        </section>
+      </article>
+    )
+  }
+
+  const grouped = groupIngredients(recipe.ingredients)
+
+  return (
+    <article className="flex flex-col gap-5">
+      {recipe.image_path && (
+        <img
+          src={`/uploads/${recipe.image_path}`}
+          alt={recipe.name ?? ''}
+          className="w-full rounded-lg object-cover max-h-64"
+        />
+      )}
+
+      <div className="flex items-center gap-4">
+        <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
+        {canEdit && <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>}
+      </div>
+
+      {currentUsername && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <BookmarkButton
+              isBookmarked={isBookmarked(recipe.id)}
+              onToggle={() => toggle(recipe.id)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCookLogClick}
+              disabled={cookLogging}
+            >
+              {cookLogging ? '記録中...' : '作った！'}
+            </Button>
+            {cookedLog && (
+              <Link
+                to={`/cooked-logs/${recipe.id}`}
+                className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+              >
+                {cookedLog.count}回作った・最終:{' '}
+                {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+              </Link>
+            )}
+          </div>
+          {cookedLog?.latest_memo && (
+            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
+              <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
+              {cookedLog.latest_memo}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isCookLogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
+            <textarea
+              className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              rows={4}
+              placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
+              value={cookLogMemo}
+              onChange={e => setCookLogMemo(e.target.value)}
+              disabled={cookLogging}
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsCookLogModalOpen(false)}
+                disabled={cookLogging}
+              >
+                キャンセル
+              </Button>
+              <Button onClick={submitCookLog} disabled={cookLogging}>
+                {cookLogging ? '記録中...' : '記録する'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <p>
+        <a
+          href={recipe.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline-offset-4 hover:underline"
+        >
+          元レシピを見る
+        </a>
+      </p>
+
+      {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">材料</h2>
+        {grouped.map(([groupName, items], gi) => (
+          <div key={gi} className="mb-3">
+            {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
+            <ul className="flex flex-col gap-1.5">
+              {items.map(ing => (
+                <li key={ing.id} className="flex items-baseline gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleIngredient(ing.name)}
+                    title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
+                    className="shrink-0"
+                  >
+                    <Star
+                      className={cn(
+                        'h-4 w-4',
+                        isIngredientBookmarked(ing.name)
+                          ? 'fill-primary text-primary'
+                          : 'text-muted-foreground/40'
+                      )}
+                    />
+                  </button>
+                  <span className="text-sm">
+                    <Link
+                      to={`/?q=${encodeURIComponent(ing.name)}`}
+                      className="underline decoration-muted-foreground/40 underline-offset-2"
+                    >
+                      {ing.name}
+                    </Link>
+                    {(ing.quantity || ing.unit) && (
+                      <>
+                        {' '}
+                        {ing.quantity ?? ''}
+                        {ing.unit ?? ''}
+                      </>
+                    )}
+                    {ing.note && <span className="text-muted-foreground">（{ing.note}）</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">作り方</h2>
+        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
+          {recipe.steps.map(step => (
+            <li key={step.id}>{step.description}</li>
+          ))}
+        </ol>
+      </section>
+    </article>
+  )
+}
