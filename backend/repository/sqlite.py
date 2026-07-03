@@ -119,14 +119,15 @@ class SQLiteDrinkRepository:
             conditions.append("d.status = ?")
             params.append(status)
         if q:
-            conditions.append("d.name LIKE ?")
-            params.append(f"%{q}%")
+            conditions.append("(d.name LIKE ? OR d.origin LIKE ? OR d.memo LIKE ? OR d.category LIKE ? OR EXISTS (SELECT 1 FROM drink_logs dl WHERE dl.drink_id = d.id AND dl.memo LIKE ?))")
+            q_param = f"%{q}%"
+            params.extend([q_param] * 5)
         if category:
             conditions.append("(d.category = ? OR d.category LIKE ? OR d.category LIKE ? OR d.category LIKE ?)")
             params.extend([category, f"{category},%", f"%,{category},%", f"%,{category}"])
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY d.id DESC"
+        query += " ORDER BY latest_star_rating DESC, d.id DESC"
 
         with self._connect() as con:
             rows = con.execute(query, tuple(params)).fetchall()
