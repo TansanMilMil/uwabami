@@ -155,6 +155,23 @@ export async function deleteDrinkImage(id: number): Promise<void> {
   assertOk(res, '画像の削除に失敗しました')
 }
 
+export interface DrinkSuggestResult {
+  category: string | null
+  origin: string | null
+  taste_type_ids: number[]
+  memo: string | null
+  price: number | null
+}
+
+export async function suggestDrinkInfo(name: string): Promise<DrinkSuggestResult> {
+  const res = await authFetch(`${BASE}/drinks/suggest`, jsonInit('POST', { name }))
+  if (res.status === 429) {
+    throw new Error('リクエストが多すぎます。しばらく待ってから再試行してください')
+  }
+  assertOk(res, 'AIサジェストの取得に失敗しました')
+  return res.json()
+}
+
 // Logs
 export async function getDrinkLogs(drinkId: number): Promise<DrinkLog[]> {
   return fetchJsonOr<DrinkLog[]>(`/drinks/${drinkId}/logs`, [])

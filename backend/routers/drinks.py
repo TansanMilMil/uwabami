@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import List, Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from db import repo
-from models import DrinkCreate, DrinkUpdate, Drink, DrinkDetail
+import drink_ai
+from models import DrinkCreate, DrinkUpdate, Drink, DrinkDetail, DrinkSuggestRequest, DrinkSuggestResponse
 from routers.auth import get_current_user, get_optional_user
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 @router.get("/api/drinks")
 def get_drinks(q: Optional[str] = Query(None), status: Optional[str] = Query(None), category: Optional[str] = Query(None)):
@@ -38,6 +42,46 @@ def get_drink_categories():
 @router.get("/api/drinks/origins")
 def get_drink_origins():
     return repo.get_drink_origins()
+
+def _match_taste_type_ids(selected_names, taste_types):
+    name_to_id = {t["name"].strip(): t["id"] for t in taste_types}
+    ids = []
+    for n in selected_names or []:
+        if isinstance(n, str) and n.strip() in name_to_id:
+            ids.append(name_to_id[n.strip()])
+    return ids
+
+
+@router.post("/api/drinks/suggest", response_model=DrinkSuggestResponse)
+@limiter.limit("10/minute")
+def suggest_drink(request: Request, body: DrinkSuggestRequest, user: dict = Depends(get_current_user)):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="お酒の名前を入力してください")
+
+    categories = repo.get_drink_categories()
+    origins = repo.get_drink_origins()
+    taste_types = repo.get_taste_types()
+
+    raw = drink_ai.suggest_drink_info(
+        name=name,
+        category_candidates=categories,
+        origin_candidates=origins,
+        taste_type_candidates=[t["name"] for t in taste_types],
+    )
+
+    price = raw.get("price")
+    if not isinstance(price, int):
+        price = None
+
+    return DrinkSuggestResponse(
+        category=(raw.get("category") or None),
+        origin=(raw.get("origin") or None),
+        taste_type_ids=_match_taste_type_ids(raw.get("taste_types"), taste_types),
+        memo=(raw.get("memo") or None),
+        price=price,
+    )
+
 
 @router.get("/api/drinks/{drink_id}")
 def get_drink(drink_id: int):

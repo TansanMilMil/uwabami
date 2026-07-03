@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2, ImagePlus } from 'lucide-react'
+import { X, Loader2, ImagePlus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType, getDrinkCategories, getDrinkOrigins } from '../api'
+import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType, getDrinkCategories, getDrinkOrigins, suggestDrinkInfo, DrinkSuggestResult } from '../api'
 import { toast } from 'sonner'
 
 interface Props {
@@ -33,6 +33,10 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   const [origins, setOrigins] = useState<string[]>([])
   const [isNewOrigin, setIsNewOrigin] = useState(false)
   const [newOriginName, setNewOriginName] = useState('')
+
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<DrinkSuggestResult | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,6 +103,55 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     }
   }
 
+  const handleAiSuggest = async () => {
+    if (!name.trim()) {
+      toast.error('先に名前を入力してください')
+      return
+    }
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const result = await suggestDrinkInfo(name.trim())
+      setAiSuggestion(result)
+    } catch (e: any) {
+      const message = e.message || 'AIサジェストの取得に失敗しました'
+      setAiError(message)
+      toast.error(message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const applySuggestedCategory = () => {
+    const c = aiSuggestion?.category?.trim()
+    if (!c) return
+    if (!categories.includes(c)) setCategories(prev => [...prev, c])
+    if (!selectedCategories.includes(c)) setSelectedCategories(prev => [...prev, c])
+  }
+
+  const applySuggestedOrigin = () => {
+    const o = aiSuggestion?.origin?.trim()
+    if (!o) return
+    if (!origins.includes(o)) setOrigins(prev => [...prev, o])
+    setOrigin(o)
+  }
+
+  const applySuggestedTasteTypes = () => {
+    const ids = aiSuggestion?.taste_type_ids ?? []
+    if (ids.length === 0) return
+    setSelectedTasteIds(prev => Array.from(new Set([...prev, ...ids])))
+  }
+
+  const applySuggestedMemo = () => {
+    if (!aiSuggestion?.memo) return
+    setMemo(aiSuggestion.memo)
+  }
+
+  const applySuggestedPrice = () => {
+    if (aiSuggestion?.price == null) return
+    setPrice(String(aiSuggestion.price))
+  }
+
   const toggleTaste = (id: number) => {
     if (selectedTasteIds.includes(id)) {
       setSelectedTasteIds(selectedTasteIds.filter(x => x !== id))
@@ -159,9 +212,63 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1.5">名前 <span className="text-red-400">*</span></label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-zinc-400">名前 <span className="text-red-400">*</span></label>
+              <button
+                type="button"
+                onClick={handleAiSuggest}
+                disabled={aiLoading || !name.trim()}
+                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                AIでサジェスト
+              </button>
+            </div>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="例: 新政 No.6" className="bg-zinc-950 border-zinc-800 text-white" />
           </div>
+
+          {(aiSuggestion || aiError) && (
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 space-y-3">
+              <p className="text-xs text-zinc-500">ウェブ検索を元にした参考情報です。内容は必ずご確認ください。</p>
+              {aiError && <p className="text-sm text-red-400">{aiError}</p>}
+              {aiSuggestion && (
+                <div className="space-y-2.5">
+                  {aiSuggestion.category && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-zinc-300 truncate">種類: {aiSuggestion.category}</span>
+                      <button type="button" onClick={applySuggestedCategory} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
+                  {aiSuggestion.origin && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-zinc-300 truncate">産地: {aiSuggestion.origin}</span>
+                      <button type="button" onClick={applySuggestedOrigin} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
+                  {aiSuggestion.taste_type_ids.length > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-zinc-300 truncate">
+                        味のタイプ: {aiSuggestion.taste_type_ids.map(id => tasteTypes.find(t => t.id === id)?.name).filter(Boolean).join('、')}
+                      </span>
+                      <button type="button" onClick={applySuggestedTasteTypes} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
+                  {aiSuggestion.price != null && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-zinc-300 truncate">想定価格: {aiSuggestion.price.toLocaleString()}円</span>
+                      <button type="button" onClick={applySuggestedPrice} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
+                  {aiSuggestion.memo && (
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-sm text-zinc-300">メモ: {aiSuggestion.memo}</span>
+                      <button type="button" onClick={applySuggestedMemo} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {!drink && (
             <div>

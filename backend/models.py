@@ -68,6 +68,18 @@ class DrinkUpdate(DrinkCreate):
     pass
 
 
+class DrinkSuggestRequest(BaseModel):
+    name: str
+
+
+class DrinkSuggestResponse(BaseModel):
+    category: str | None = None
+    origin: str | None = None
+    taste_type_ids: list[int] = []
+    memo: str | None = None
+    price: int | None = None
+
+
 class DrinkDetail(Drink):
     logs: list[DrinkLog] = []
 
