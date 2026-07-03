@@ -113,24 +113,24 @@ export default function TopPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-40 rounded-xl bg-zinc-900/50 animate-pulse border border-zinc-800" />
           ))}
         </div>
       ) : drinks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {drinks.map(drink => (
             <Link key={drink.id} to={`/drinks/${drink.id}`}>
-              <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-col">
+              <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-row">
                 {drink.image_path ? (
-                  <div className="w-full h-32 overflow-hidden">
+                  <div className="w-28 sm:w-32 shrink-0 overflow-hidden">
                     <img src={`/uploads/${drink.image_path}`} alt={drink.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   </div>
                 ) : (
-                  <div className="w-full h-2 bg-zinc-800" />
+                  <div className="w-2 shrink-0 bg-zinc-800" />
                 )}
-                <CardContent className="p-5 flex flex-col flex-grow">
+                <CardContent className="p-5 flex flex-col flex-grow min-w-0">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors">
                       {drink.name}
