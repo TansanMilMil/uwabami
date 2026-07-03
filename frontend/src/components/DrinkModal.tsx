@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, ImagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Drink, createDrink, updateDrink, getTasteTypes, TasteType } from '../api'
+import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType } from '../api'
 import { toast } from 'sonner'
 
 interface Props {
@@ -23,6 +23,15 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   
   const [tasteTypes, setTasteTypes] = useState<TasteType[]>([])
   const [loading, setLoading] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
 
   useEffect(() => {
     getTasteTypes().then(setTasteTypes).catch(console.error)
@@ -55,6 +64,13 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
         toast.success('更新しました')
       } else {
         res = await createDrink(payload as any)
+        if (imageFile) {
+          try {
+            await uploadDrinkImage(res.id, imageFile)
+          } catch (err) {
+            toast.error('画像のアップロードに失敗しました')
+          }
+        }
         toast.success('登録しました')
       }
       onSaved(res)
@@ -88,6 +104,32 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
             <label className="block text-sm font-medium text-zinc-400 mb-1.5">名前 <span className="text-red-400">*</span></label>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="例: 新政 No.6" className="bg-zinc-950 border-zinc-800 text-white" />
           </div>
+
+          {!drink && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1.5">画像</label>
+              {imagePreview ? (
+                <div className="relative w-full max-w-[160px]">
+                  <img src={imagePreview} alt="プレビュー" className="w-full h-auto rounded-lg border border-zinc-800" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(null) }}
+                    className="absolute top-1 right-1 bg-red-600/80 p-1 rounded-full text-white hover:bg-red-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input type="file" id="new-drink-image" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                  <label htmlFor="new-drink-image" className="cursor-pointer inline-flex items-center gap-2 text-sm bg-zinc-950 hover:bg-zinc-800 text-zinc-300 py-2 px-3 rounded-md transition-colors border border-zinc-800">
+                    <ImagePlus className="h-4 w-4" />
+                    画像を選択
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

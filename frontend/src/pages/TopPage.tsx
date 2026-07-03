@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Search, Wine, Beer, MapPin, Tag } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { UserContext } from '../contexts/UserContext'
 import DrinkModal from '../components/DrinkModal'
 
 export default function TopPage() {
+  const navigate = useNavigate()
   const currentUsername = useContext(UserContext)
   const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>('drunk')
   const [search, setSearch] = useState('')
@@ -36,9 +37,9 @@ export default function TopPage() {
     return () => clearTimeout(timer)
   }, [activeTab, search])
 
-  const handleSaved = () => {
+  const handleSaved = (drink: Drink) => {
     setShowModal(false)
-    loadDrinks()
+    navigate(`/drinks/${drink.id}`)
   }
 
   return (
