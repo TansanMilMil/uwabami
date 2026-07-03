@@ -15,6 +15,9 @@ export interface Drink {
   created_by: number
   taste_types: TasteType[]
   latest_memo?: string | null
+  latest_star_rating?: number | null
+  latest_drunk_date?: string | null
+  latest_username?: string | null
 }
 
 export interface TasteType {
@@ -29,6 +32,7 @@ export interface DrinkLog {
   drunk_date: string
   star_rating: number
   memo?: string | null
+  username?: string | null
 }
 
 const BASE = '/api'

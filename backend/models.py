@@ -31,6 +31,7 @@ class DrinkLog(BaseModel):
     drunk_date: str # YYYY-MM-DD
     star_rating: float
     memo: str | None = None
+    username: str | None = None
 
 
 class DrinkLogCreate(BaseModel):

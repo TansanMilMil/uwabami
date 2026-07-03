@@ -97,7 +97,20 @@ class SQLiteDrinkRepository:
                 (SELECT dl.memo FROM drink_logs dl
                  WHERE dl.drink_id = d.id
                  ORDER BY dl.drunk_date DESC, dl.id DESC
-                 LIMIT 1) AS latest_memo
+                 LIMIT 1) AS latest_memo,
+                (SELECT dl.star_rating FROM drink_logs dl
+                 WHERE dl.drink_id = d.id
+                 ORDER BY dl.drunk_date DESC, dl.id DESC
+                 LIMIT 1) AS latest_star_rating,
+                (SELECT dl.drunk_date FROM drink_logs dl
+                 WHERE dl.drink_id = d.id
+                 ORDER BY dl.drunk_date DESC, dl.id DESC
+                 LIMIT 1) AS latest_drunk_date,
+                (SELECT u.username FROM drink_logs dl
+                 JOIN users u ON u.id = dl.user_id
+                 WHERE dl.drink_id = d.id
+                 ORDER BY dl.drunk_date DESC, dl.id DESC
+                 LIMIT 1) AS latest_username
             FROM drinks d
         """
         conditions = []
@@ -191,7 +204,16 @@ class SQLiteDrinkRepository:
 
     def get_drink_logs(self, drink_id: int) -> List[dict]:
         with self._connect() as con:
-            rows = con.execute("SELECT * FROM drink_logs WHERE drink_id = ? ORDER BY drunk_date DESC, id DESC", (drink_id,)).fetchall()
+            rows = con.execute(
+                """
+                SELECT dl.*, u.username
+                FROM drink_logs dl
+                JOIN users u ON u.id = dl.user_id
+                WHERE dl.drink_id = ?
+                ORDER BY dl.drunk_date DESC, dl.id DESC
+                """,
+                (drink_id,),
+            ).fetchall()
             return [dict(r) for r in rows]
 
     def create_drink_log(self, drink_id: int, user_id: int, drunk_date: str, star_rating: float, memo: Optional[str]) -> int:

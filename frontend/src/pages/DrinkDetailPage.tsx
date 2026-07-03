@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit2, MapPin, Tag, Wine, Plus, Calendar, Star, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit2, MapPin, Tag, Wine, Plus, Calendar, Star, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getDrink, getDrinkLogs, deleteDrink, deleteDrinkLog, uploadDrinkImage, deleteDrinkImage, Drink, DrinkLog } from '../api'
@@ -234,6 +234,12 @@ export default function DrinkDetailPage() {
                         <Star key={i} className={`h-4 w-4 ${i < log.star_rating ? 'fill-amber-500' : 'text-zinc-700'}`} />
                       ))}
                     </div>
+                    {log.username && (
+                      <div className="flex items-center gap-1 text-xs text-zinc-500">
+                        <User className="h-3.5 w-3.5" />
+                        {log.username}
+                      </div>
+                    )}
                   </div>
                   {canEdit && (
                     <div className="flex gap-2">

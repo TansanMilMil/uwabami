@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare } from 'lucide-react'
+import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare, Star, Calendar, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -148,9 +148,34 @@ export default function TopPage() {
                   )}
 
                   {drink.latest_memo && (
-                    <div className="flex items-start gap-1.5 text-sm text-zinc-400 mb-2">
-                      <MessageSquare className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
-                      <span className="line-clamp-2">{drink.latest_memo}</span>
+                    <div className="mb-2">
+                      {(drink.latest_star_rating != null || drink.latest_drunk_date || drink.latest_username) && (
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          {drink.latest_star_rating != null && (
+                            <div className="flex text-amber-500">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`h-3.5 w-3.5 ${i < drink.latest_star_rating! ? 'fill-amber-500' : 'text-zinc-700'}`} />
+                              ))}
+                            </div>
+                          )}
+                          {drink.latest_drunk_date && (
+                            <div className="flex items-center gap-1 text-xs text-zinc-500">
+                              <Calendar className="h-3 w-3" />
+                              {drink.latest_drunk_date}
+                            </div>
+                          )}
+                          {drink.latest_username && (
+                            <div className="flex items-center gap-1 text-xs text-zinc-500">
+                              <User className="h-3 w-3" />
+                              {drink.latest_username}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-start gap-1.5 text-sm text-zinc-400">
+                        <MessageSquare className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
+                        <span className="line-clamp-2">{drink.latest_memo}</span>
+                      </div>
                     </div>
                   )}
 
