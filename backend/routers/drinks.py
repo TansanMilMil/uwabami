@@ -72,7 +72,7 @@ def update_drink(drink_id: int, drink: DrinkUpdate, user: dict = Depends(get_cur
         memo=drink.memo,
         taste_type_ids=taste_type_ids
     )
-    return {"ok": True}
+    return repo.get_drink_by_id(drink_id)
 
 @router.delete("/api/drinks/{drink_id}")
 def delete_drink(drink_id: int, user: dict = Depends(get_current_user)):

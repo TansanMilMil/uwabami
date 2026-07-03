@@ -267,7 +267,7 @@ export default function DrinkDetailPage() {
         <DrinkModal
           drink={drink}
           onClose={() => setShowEditModal(false)}
-          onSaved={(updated) => { setShowEditModal(false); setDrink(updated); }}
+          onSaved={() => { setShowEditModal(false); loadData(); }}
         />
       )}
 

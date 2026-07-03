@@ -1,12 +1,25 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import TopPage from './pages/TopPage'
 import DrinkDetailPage from './pages/DrinkDetailPage'
 import LoginPage from './LoginPage'
 import Header from './components/Header'
+import ErrorBoundary from './components/ErrorBoundary'
 import { checkAuth } from './api'
 import { UserContext } from './contexts/UserContext'
+
+function RoutedContent() {
+  const location = useLocation()
+  return (
+    <ErrorBoundary key={location.pathname}>
+      <Routes>
+        <Route path="/" element={<TopPage />} />
+        <Route path="/drinks/:id" element={<DrinkDetailPage />} />
+      </Routes>
+    </ErrorBoundary>
+  )
+}
 
 export default function App() {
   const [currentUsername, setCurrentUsername] = useState<string | null>(null)
@@ -37,10 +50,7 @@ export default function App() {
           <Header onLoginClick={() => setShowLogin(true)} />
           <main className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-4xl p-4 md:p-8">
-              <Routes>
-                <Route path="/" element={<TopPage />} />
-                <Route path="/drinks/:id" element={<DrinkDetailPage />} />
-              </Routes>
+              <RoutedContent />
             </div>
           </main>
         </div>
