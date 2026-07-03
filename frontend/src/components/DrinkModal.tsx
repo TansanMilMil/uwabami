@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Loader2, ImagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType, getDrinkCategories } from '../api'
+import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType, getDrinkCategories, getDrinkOrigins } from '../api'
 import { toast } from 'sonner'
 
 interface Props {
@@ -30,6 +30,10 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   const [isNewCategory, setIsNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
 
+  const [origins, setOrigins] = useState<string[]>([])
+  const [isNewOrigin, setIsNewOrigin] = useState(false)
+  const [newOriginName, setNewOriginName] = useState('')
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -45,6 +49,10 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     getDrinkCategories().then(cats => {
       setCategories(cats)
     }).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    getDrinkOrigins().then(setOrigins).catch(console.error)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,6 +125,26 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     }
     setNewCategoryName('')
     setIsNewCategory(false)
+  }
+
+  const toggleOrigin = (o: string) => {
+    if (origin === o) {
+      setOrigin('')
+    } else {
+      setOrigin(o)
+    }
+  }
+
+  const addNewOrigin = () => {
+    const o = newOriginName.trim()
+    if (o) {
+      setOrigin(o)
+      if (!origins.includes(o)) {
+        setOrigins([...origins, o])
+      }
+    }
+    setNewOriginName('')
+    setIsNewOrigin(false)
   }
 
   return (
@@ -213,18 +241,50 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
                 <option value="want_to_drink">呑みたい</option>
               </select>
             </div>
-            <div className="invisible"></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">産地</label>
-              <Input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="例: 秋田県" className="bg-zinc-950 border-zinc-800 text-white" />
-            </div>
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">値段 (円)</label>
               <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="2000" className="bg-zinc-950 border-zinc-800 text-white" />
             </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-zinc-400 mb-1.5">産地</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {origins.map(o => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => toggleOrigin(o)}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+                    origin === o
+                      ? 'bg-amber-600/20 border-amber-500/50 text-amber-400'
+                      : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+            {isNewOrigin ? (
+              <div className="flex gap-2 mt-2">
+                <Input
+                  value={newOriginName}
+                  onChange={e => setNewOriginName(e.target.value)}
+                  placeholder="例: 秋田県"
+                  className="bg-zinc-950 border-zinc-800 text-white flex-1"
+                />
+                <button type="button" onClick={addNewOrigin} className="shrink-0 px-3 rounded-md border border-zinc-800 hover:bg-zinc-800 text-white text-sm transition-colors">追加</button>
+                <button type="button" onClick={() => { setIsNewOrigin(false); setNewOriginName(''); }} className="shrink-0 px-3 rounded-md border border-zinc-800 hover:bg-zinc-800 text-zinc-400 text-sm transition-colors">キャンセル</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsNewOrigin(true)}
+                className="text-sm text-zinc-400 hover:text-white px-2 py-1 rounded-md border border-zinc-800 hover:bg-zinc-800 transition-colors"
+              >
+                ＋ 新しい産地を追加
+              </button>
+            )}
           </div>
 
           {tasteTypes.length > 0 && (

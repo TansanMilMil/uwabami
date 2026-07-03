@@ -147,6 +147,12 @@ class SQLiteDrinkRepository:
                             cats.add(c)
             return sorted(list(cats))
 
+    def get_drink_origins(self) -> List[str]:
+        with self._connect() as con:
+            rows = con.execute("SELECT DISTINCT origin FROM drinks WHERE origin IS NOT NULL AND origin != ''").fetchall()
+            return sorted([r["origin"] for r in rows])
+
+
     def get_drink_by_id(self, drink_id: int) -> Optional[dict]:
         with self._connect() as con:
             row = con.execute("SELECT * FROM drinks WHERE id = ?", (drink_id,)).fetchone()
