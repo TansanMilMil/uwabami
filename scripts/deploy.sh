@@ -21,7 +21,7 @@ rsync -avz --delete \
     --exclude='node_modules/' \
     --exclude='__pycache__/' \
     --exclude='.devcontainer/' \
-    --exclude='backend/db/*.db' \
+    --exclude='db/*.db' \
     --exclude='frontend/dist/' \
     --exclude='backups/' \
     --exclude='.env' \

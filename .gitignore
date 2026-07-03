@@ -16,6 +16,7 @@ env/
 # Database
 db/*.db
 db/*.sqlite3
+backups/
 
 # OS / Editor
 .DS_Store
