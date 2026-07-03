@@ -1,0 +1,292 @@
+import { useState, useEffect } from 'react'
+import { X, Edit2, MapPin, Tag, Wine, Plus, Calendar, Star, Trash2, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { getDrink, getDrinkLogs, deleteDrink, deleteDrinkLog, uploadDrinkImage, deleteDrinkImage, Drink, DrinkLog } from '../api'
+import { useContext } from 'react'
+import { UserContext } from '../contexts/UserContext'
+import DrinkModal from './DrinkModal'
+import DrinkLogModal from './DrinkLogModal'
+import { toast } from 'sonner'
+
+interface Props {
+  drinkId: number
+  onClose: () => void
+  onChanged?: () => void
+}
+
+export default function DrinkDetailModal({ drinkId, onClose, onChanged }: Props) {
+  const currentUsername = useContext(UserContext)
+
+  const [drink, setDrink] = useState<Drink | null>(null)
+  const [logs, setLogs] = useState<DrinkLog[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [editingLog, setEditingLog] = useState<DrinkLog | undefined>(undefined)
+
+  const loadData = async () => {
+    try {
+      const [d, l] = await Promise.all([
+        getDrink(drinkId),
+        getDrinkLogs(drinkId)
+      ])
+      setDrink(d)
+      setLogs(l)
+    } catch (e) {
+      toast.error('お酒情報の取得に失敗しました')
+      onClose()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [drinkId])
+
+  const handleDeleteDrink = async () => {
+    if (!window.confirm('本当にこのお酒を削除しますか？')) return
+    try {
+      await deleteDrink(drinkId)
+      toast.success('削除しました')
+      onChanged?.()
+      onClose()
+    } catch (e) {
+      toast.error('削除に失敗しました')
+    }
+  }
+
+  const handleDeleteLog = async (logId: number) => {
+    if (!window.confirm('この記録を削除しますか？')) return
+    try {
+      await deleteDrinkLog(logId)
+      toast.success('記録を削除しました')
+      await loadData()
+      onChanged?.()
+    } catch (e) {
+      toast.error('削除に失敗しました')
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setLoading(true)
+      await uploadDrinkImage(drinkId, file)
+      toast.success('画像をアップロードしました')
+      await loadData()
+      onChanged?.()
+    } catch (err) {
+      toast.error('画像のアップロードに失敗しました')
+    } finally {
+      setLoading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleDeleteImage = async () => {
+    if (!window.confirm('本当に画像を削除しますか？')) return
+    try {
+      setLoading(true)
+      await deleteDrinkImage(drinkId)
+      toast.success('画像を削除しました')
+      await loadData()
+      onChanged?.()
+    } catch (err) {
+      toast.error('画像の削除に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const canEdit = !!currentUsername
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-10 animate-in zoom-in-95 duration-200"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 text-zinc-400 hover:text-white rounded-full hover:bg-zinc-800 transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {loading || !drink ? (
+          <div className="animate-pulse space-y-8">
+            <div className="h-48 bg-zinc-950/50 rounded-2xl border border-zinc-800" />
+            <div className="h-64 bg-zinc-950/50 rounded-2xl border border-zinc-800" />
+          </div>
+        ) : (
+          <>
+            <div className="absolute top-0 right-0 p-32 bg-amber-500/5 rounded-full blur-3xl -z-10" />
+
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8 pr-8">
+              <div>
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <div className="flex gap-2 flex-wrap">
+                    {drink.category.split(',').map(c => c.trim()).filter(Boolean).map(c => (
+                      <Badge key={c} variant="outline" className="bg-zinc-950 border-amber-600/30 text-amber-500 px-3 py-1 text-sm">
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Badge variant="secondary" className={`${drink.status === 'drunk' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} border`}>
+                    {drink.status === 'drunk' ? '呑んだ' : '呑みたい'}
+                  </Badge>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                  {drink.name}
+                </h1>
+                {drink.image_path && (
+                  <div className="relative group rounded-xl overflow-hidden mb-6 w-full max-w-sm">
+                    <img src={`/uploads/${drink.image_path}`} alt={drink.name} className="w-full h-auto object-cover rounded-xl" />
+                    {canEdit && (
+                      <button onClick={handleDeleteImage} className="absolute top-2 right-2 bg-red-600/80 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {canEdit && (
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800">
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      編集
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDeleteDrink} className="border-zinc-700 bg-zinc-900 hover:bg-red-950 hover:text-red-400 hover:border-red-900">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    <input type="file" id="modal-image-upload" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                    <label htmlFor="modal-image-upload" className="cursor-pointer text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 px-3 rounded-md transition-colors border border-zinc-700">
+                      {drink.image_path ? '画像を変更' : '画像を追加'}
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+              {drink.origin && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-zinc-500 flex items-center gap-1"><MapPin className="h-4 w-4" /> 産地</span>
+                  <span className="text-zinc-200 font-medium">{drink.origin}</span>
+                </div>
+              )}
+              {drink.price && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-zinc-500 flex items-center gap-1"><Tag className="h-4 w-4" /> 値段</span>
+                  <span className="text-zinc-200 font-medium">¥{drink.price.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+            {drink.taste_types && drink.taste_types.length > 0 && (
+              <div className="mb-6">
+                <span className="text-sm text-zinc-500 mb-2 block">味のタイプ</span>
+                <div className="flex flex-wrap gap-2">
+                  {drink.taste_types.map(t => (
+                    <span key={t.id} className="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 shadow-sm">
+                      {t.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {drink.memo && (
+              <div className="bg-zinc-950/50 p-4 rounded-xl border border-zinc-800/50 mb-8">
+                <span className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider font-semibold">Memo</span>
+                <p className="text-zinc-300 whitespace-pre-wrap leading-relaxed text-sm">{drink.memo}</p>
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Wine className="h-6 w-6 text-zinc-400" />
+                  呑んだ記録
+                </h2>
+                {canEdit && (
+                  <Button onClick={() => { setEditingLog(undefined); setShowLogModal(true); }} className="bg-amber-600 hover:bg-amber-700 text-white rounded-full pl-3 pr-4 shadow-lg shadow-amber-900/20">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    記録を追加
+                  </Button>
+                )}
+              </div>
+
+              {logs.length > 0 ? (
+                <div className="space-y-4">
+                  {logs.map(log => (
+                    <div key={log.id} className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5 hover:bg-zinc-900/60 transition-colors">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-zinc-300 font-medium bg-zinc-950 px-3 py-1 rounded-lg border border-zinc-800 shadow-inner">
+                            <Calendar className="h-4 w-4 text-zinc-500" />
+                            {log.drunk_date}
+                          </div>
+                          <div className="flex text-amber-500">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`h-4 w-4 ${i < log.star_rating ? 'fill-amber-500' : 'text-zinc-700'}`} />
+                            ))}
+                          </div>
+                          {log.username && (
+                            <div className="flex items-center gap-1 text-xs text-zinc-500">
+                              <User className="h-3.5 w-3.5" />
+                              {log.username}
+                            </div>
+                          )}
+                        </div>
+                        {canEdit && (
+                          <div className="flex gap-2">
+                            <button onClick={() => { setEditingLog(log); setShowLogModal(true); }} className="text-zinc-500 hover:text-white transition-colors p-1"><Edit2 className="h-4 w-4" /></button>
+                            <button onClick={() => handleDeleteLog(log.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-1"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        )}
+                      </div>
+                      {log.memo && <p className="text-zinc-400 text-sm whitespace-pre-wrap">{log.memo}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-zinc-900/20 border border-zinc-800/50 rounded-2xl border-dashed">
+                  <p className="text-zinc-500 mb-2">まだ記録がありません</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {showEditModal && drink && (
+          <DrinkModal
+            drink={drink}
+            onClose={() => setShowEditModal(false)}
+            onSaved={() => { setShowEditModal(false); loadData(); onChanged?.() }}
+          />
+        )}
+
+        {showLogModal && (
+          <DrinkLogModal
+            drinkId={drinkId}
+            log={editingLog}
+            onClose={() => setShowLogModal(false)}
+            onSaved={() => { setShowLogModal(false); loadData(); onChanged?.() }}
+          />
+        )}
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,4 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare, Star, Calendar, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,9 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { getDrinks, getDrinkCategories, Drink } from '../api'
 import { UserContext } from '../contexts/UserContext'
 import DrinkModal from '../components/DrinkModal'
+import DrinkDetailModal from '../components/DrinkDetailModal'
 
 export default function TopPage() {
-  const navigate = useNavigate()
   const currentUsername = useContext(UserContext)
   const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>('drunk')
   const [search, setSearch] = useState('')
@@ -19,6 +18,7 @@ export default function TopPage() {
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [selectedDrinkId, setSelectedDrinkId] = useState<number | null>(null)
 
   const loadDrinks = async () => {
     setLoading(true)
@@ -45,7 +45,8 @@ export default function TopPage() {
 
   const handleSaved = (drink: Drink) => {
     setShowModal(false)
-    navigate(`/drinks/${drink.id}`)
+    loadDrinks()
+    setSelectedDrinkId(drink.id)
   }
 
   return (
@@ -121,7 +122,19 @@ export default function TopPage() {
       ) : drinks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {drinks.map(drink => (
-            <Link key={drink.id} to={`/drinks/${drink.id}`}>
+            <div
+              key={drink.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedDrinkId(drink.id)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSelectedDrinkId(drink.id)
+                }
+              }}
+              className="cursor-pointer"
+            >
               <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-row">
                 {drink.image_path ? (
                   <div className="w-28 sm:w-32 shrink-0 overflow-hidden">
@@ -193,7 +206,7 @@ export default function TopPage() {
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (
@@ -208,6 +221,14 @@ export default function TopPage() {
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}
           initialStatus={activeTab}
+        />
+      )}
+
+      {selectedDrinkId != null && (
+        <DrinkDetailModal
+          drinkId={selectedDrinkId}
+          onClose={() => setSelectedDrinkId(null)}
+          onChanged={loadDrinks}
         />
       )}
     </div>
