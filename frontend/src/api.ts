@@ -103,6 +103,10 @@ export async function getDrinks(query?: string, status?: string): Promise<Drink[
   return fetchJsonOr<Drink[]>(path, [])
 }
 
+export async function getDrinkCategories(): Promise<string[]> {
+  return fetchJsonOr<string[]>('/drinks/categories', [])
+}
+
 export async function getDrink(id: number): Promise<Drink> {
   const res = await authFetch(`${BASE}/drinks/${id}`)
   assertOk(res, 'お酒が見つかりません')

@@ -31,6 +31,10 @@ def create_drink(drink: DrinkCreate, user: dict = Depends(get_current_user)):
     )
     return {"id": drink_id}
 
+@router.get("/api/drinks/categories")
+def get_drink_categories():
+    return repo.get_drink_categories()
+
 @router.get("/api/drinks/{drink_id}")
 def get_drink(drink_id: int):
     drink = repo.get_drink_by_id(drink_id)

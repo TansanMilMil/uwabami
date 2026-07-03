@@ -113,6 +113,11 @@ class SQLiteDrinkRepository:
                 drink["taste_types"] = self.get_drink_taste_types(drink["id"], con)
             return drinks
 
+    def get_drink_categories(self) -> List[str]:
+        with self._connect() as con:
+            rows = con.execute("SELECT DISTINCT category FROM drinks ORDER BY category").fetchall()
+            return [r["category"] for r in rows]
+
     def get_drink_by_id(self, drink_id: int) -> Optional[dict]:
         with self._connect() as con:
             row = con.execute("SELECT * FROM drinks WHERE id = ?", (drink_id,)).fetchone()

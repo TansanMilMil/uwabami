@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Loader2, ImagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType } from '../api'
+import { Drink, createDrink, updateDrink, uploadDrinkImage, getTasteTypes, TasteType, getDrinkCategories } from '../api'
 import { toast } from 'sonner'
 
 interface Props {
@@ -26,6 +26,9 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
+  const [categories, setCategories] = useState<string[]>([])
+  const [isNewCategory, setIsNewCategory] = useState(false)
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -35,6 +38,15 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
 
   useEffect(() => {
     getTasteTypes().then(setTasteTypes).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    getDrinkCategories().then(cats => {
+      setCategories(cats)
+      if (cats.length === 0 || (drink && !cats.includes(drink.category))) {
+        setIsNewCategory(true)
+      }
+    }).catch(console.error)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,7 +146,44 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">種類 <span className="text-red-400">*</span></label>
-              <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="例: 日本酒, ワイン" className="bg-zinc-950 border-zinc-800 text-white" />
+              {isNewCategory ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    placeholder="例: 日本酒, ワイン"
+                    className="bg-zinc-950 border-zinc-800 text-white"
+                  />
+                  {categories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setIsNewCategory(false); setCategory('') }}
+                      className="shrink-0 text-xs text-zinc-400 hover:text-white px-2 rounded-md border border-zinc-800 hover:bg-zinc-800 transition-colors"
+                    >
+                      一覧から選ぶ
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={category}
+                  onChange={e => {
+                    if (e.target.value === '__new__') {
+                      setIsNewCategory(true)
+                      setCategory('')
+                    } else {
+                      setCategory(e.target.value)
+                    }
+                  }}
+                  className="w-full h-10 px-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none"
+                >
+                  <option value="" disabled>選択してください</option>
+                  {categories.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option value="__new__">＋ 新しい種類を追加</option>
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">ステータス</label>
