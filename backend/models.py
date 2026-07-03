@@ -69,3 +69,74 @@ class DrinkUpdate(DrinkCreate):
 
 class DrinkDetail(Drink):
     logs: list[DrinkLog] = []
+
+
+class StepCreate(BaseModel):
+    step_number: int
+    description: str
+
+
+class Step(StepCreate):
+    id: int | None = None
+    recipe_id: int | None = None
+
+
+class IngredientCreate(BaseModel):
+    group_name: str | None = None
+    sort_order: int | None = None
+    name: str | None = None
+    quantity: str | None = None
+    unit: str | None = None
+    note: str | None = None
+
+
+class Ingredient(IngredientCreate):
+    id: int | None = None
+    recipe_id: int | None = None
+
+
+class RecipeCreate(BaseModel):
+    name: str
+    source_url: str | None = None
+    servings: str | None = None
+    ingredients: list[IngredientCreate] = []
+    steps: list[StepCreate] = []
+
+
+class RecipeUpdate(RecipeCreate):
+    pass
+
+
+class Recipe(BaseModel):
+    id: int | None = None
+    name: str
+    source_url: str | None = None
+    servings: str | None = None
+    scraped_at: str | None = None
+    username: str | None = None
+    ingredient_names: list[str] = []
+    image_path: str | None = None
+
+
+class RecipeDetail(Recipe):
+    ingredients: list[Ingredient] = []
+    steps: list[Step] = []
+
+
+class CookedLogCreate(BaseModel):
+    memo: str | None = None
+
+
+class CookedLogEntry(BaseModel):
+    recipe_id: int
+    recipe_name: str | None = None
+    image_path: str | None = None
+    count: int
+    last_cooked_at: str | None = None
+    latest_memo: str | None = None
+
+
+class CookedLogRawEntry(BaseModel):
+    id: int
+    cooked_at: str | None = None
+    memo: str | None = None

@@ -21,7 +21,7 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://os3-386-26416.vs.sakura.ne.jp:8090"],
+    allow_origins=["http://os3-386-26416.vs.sakura.ne.jp:8093"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

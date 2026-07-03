@@ -173,3 +173,213 @@ export async function createTasteType(name: string): Promise<TasteType> {
   assertOk(res, '味のタイプの登録に失敗しました')
   return res.json()
 }
+
+export interface StepCreate {
+  step_number: number
+  description: string
+}
+
+export interface Step extends StepCreate {
+  id: number
+  recipe_id: number
+}
+
+export interface IngredientCreate {
+  group_name?: string | null
+  sort_order?: number | null
+  name: string
+  quantity?: string | null
+  unit?: string | null
+  note?: string | null
+}
+
+export interface Ingredient extends IngredientCreate {
+  id: number
+  recipe_id: number
+}
+
+export interface RecipeCreate {
+  name: string
+  source_url?: string | null
+  servings?: number | null
+  ingredients: IngredientCreate[]
+  steps: StepCreate[]
+}
+
+export interface RecipeUpdate extends RecipeCreate {}
+
+export interface Recipe {
+  id: number
+  name: string
+  source_url?: string | null
+  servings?: number | null
+  scraped_at?: string | null
+  username?: string | null
+  ingredient_names: string[]
+  image_path?: string | null
+}
+
+export interface RecipeDetail extends Recipe {
+  ingredients: Ingredient[]
+  steps: Step[]
+}
+
+export interface CookedLogEntry {
+  recipe_id: number
+  recipe_name?: string | null
+  image_path?: string | null
+  count: number
+  last_cooked_at: string
+  latest_memo?: string | null
+}
+
+export interface CookedLogRawEntry {
+  id: number
+  cooked_at: string
+  memo?: string | null
+}
+
+export interface SuggestResult {
+  comment: string
+  recipes: Recipe[]
+}
+
+export class DuplicateUrlError extends Error {
+  constructor() {
+    super('Duplicate URL')
+    this.name = 'DuplicateUrlError'
+  }
+}
+
+// Recipes
+export async function searchRecipes(q: string = ''): Promise<Recipe[]> {
+  const params = new URLSearchParams()
+  if (q) params.append('q', q)
+  const qs = params.toString()
+  const path = qs ? `/recipes?${qs}` : '/recipes'
+  return fetchJsonOr<Recipe[]>(path, [])
+}
+
+export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/ai/recipes/from-url`, jsonInit('POST', { url }))
+  if (res.status === 409) throw new DuplicateUrlError()
+  assertOk(res, 'URLからのレシピ取得に失敗しました')
+  return res.json()
+}
+
+export async function createRecipe(data: RecipeCreate): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes`, jsonInit('POST', data))
+  assertOk(res, 'レシピの登録に失敗しました')
+  return res.json()
+}
+
+export async function getRecipe(id: number): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes/${id}`)
+  assertOk(res, 'レシピが見つかりません')
+  return res.json()
+}
+
+export async function updateRecipe(id: number, data: RecipeUpdate): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes/${id}`, jsonInit('PUT', data))
+  assertOk(res, 'レシピの更新に失敗しました')
+  return res.json()
+}
+
+export async function deleteRecipe(id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/recipes/${id}`, { method: 'DELETE' })
+  assertOk(res, 'レシピの削除に失敗しました')
+}
+
+export async function recordRecipeViewed(id: number): Promise<void> {
+  await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
+}
+
+export async function uploadRecipeImage(id: number, file: File): Promise<{ image_path: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await authFetch(`${BASE}/recipes/${id}/image`, {
+    method: 'POST',
+    body: formData,
+  })
+  assertOk(res, '画像のアップロードに失敗しました')
+  return res.json()
+}
+
+export async function deleteRecipeImage(id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/recipes/${id}/image`, { method: 'DELETE' })
+  assertOk(res, '画像の削除に失敗しました')
+}
+
+export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
+  const promises = ids.map(id => getRecipe(id).catch(() => null))
+  const results = await Promise.all(promises)
+  return results.filter((r): r is RecipeDetail => r !== null)
+}
+
+// Bookmarks
+export async function getRecipeBookmarks(): Promise<number[]> {
+  return fetchJsonOr<number[]>('/bookmarks/recipes', [])
+}
+export async function addRecipeBookmark(recipeId: number): Promise<void> {
+  const res = await authFetch(`${BASE}/bookmarks/recipes/${recipeId}`, { method: 'POST' })
+  assertOk(res, 'ブックマークの追加に失敗しました')
+}
+export async function removeRecipeBookmark(recipeId: number): Promise<void> {
+  const res = await authFetch(`${BASE}/bookmarks/recipes/${recipeId}`, { method: 'DELETE' })
+  assertOk(res, 'ブックマークの削除に失敗しました')
+}
+
+export async function getIngredientBookmarks(): Promise<string[]> {
+  return fetchJsonOr<string[]>('/bookmarks/ingredients', [])
+}
+export async function addIngredientBookmark(name: string): Promise<void> {
+  const res = await authFetch(`${BASE}/bookmarks/ingredients`, jsonInit('POST', { name }))
+  assertOk(res, 'ブックマークの追加に失敗しました')
+}
+export async function removeIngredientBookmark(name: string): Promise<void> {
+  const res = await authFetch(`${BASE}/bookmarks/ingredients`, jsonInit('DELETE', { name }))
+  assertOk(res, 'ブックマークの削除に失敗しました')
+}
+
+// Cooked Logs
+export async function getCookedLogs(): Promise<CookedLogEntry[]> {
+  return fetchJsonOr<CookedLogEntry[]>('/cooked-logs', [])
+}
+export async function getCookedLogForRecipe(recipeId: number): Promise<CookedLogEntry | null> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipeId}`)
+  if (!res.ok) return null
+  return res.json()
+}
+export async function getCookedLogEntries(recipeId: number): Promise<CookedLogRawEntry[]> {
+  return fetchJsonOr<CookedLogRawEntry[]>(`/cooked-logs/${recipeId}/entries`, [])
+}
+export async function addCookedLog(recipeId: number, memo: string): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipeId}`, jsonInit('POST', { memo }))
+  assertOk(res, '記録の追加に失敗しました')
+}
+export async function updateCookedLogEntry(recipeId: number, entryId: number, memo: string): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipeId}/entries/${entryId}`, jsonInit('PUT', { memo }))
+  assertOk(res, '記録の更新に失敗しました')
+}
+export async function deleteCookedLogEntry(recipeId: number, entryId: number): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipeId}/entries/${entryId}`, { method: 'DELETE' })
+  assertOk(res, '記録の削除に失敗しました')
+}
+
+// History
+export async function getRecentViewedRecipes(): Promise<Recipe[]> {
+  return fetchJsonOr<Recipe[]>('/history/recipes', [])
+}
+export async function getRecentViewedIngredients(): Promise<string[]> {
+  return fetchJsonOr<string[]>('/history/ingredients', [])
+}
+
+// Suggest
+export async function getIngredientSuggestions(): Promise<string[]> {
+  return fetchJsonOr<string[]>('/ingredients/suggestions', [])
+}
+export async function suggestRecipes(query: string): Promise<SuggestResult> {
+  const res = await authFetch(`${BASE}/ai/suggest`, jsonInit('POST', { query }))
+  assertOk(res, '提案の取得に失敗しました')
+  return res.json()
+}

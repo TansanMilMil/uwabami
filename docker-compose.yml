@@ -28,7 +28,7 @@ services:
     environment:
       - UWABAMI_CLOUDFRONT_SECRET=${UWABAMI_CLOUDFRONT_SECRET:-}
     ports:
-      - "8090:80"
+      - "8093:80"
     volumes:
       - static:/usr/share/nginx/html
       - uploads:/usr/share/nginx/uploads
