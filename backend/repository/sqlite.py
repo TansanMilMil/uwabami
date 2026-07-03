@@ -122,8 +122,8 @@ class SQLiteDrinkRepository:
             conditions.append("d.name LIKE ?")
             params.append(f"%{q}%")
         if category:
-            conditions.append("d.category = ?")
-            params.append(category)
+            conditions.append("(d.category = ? OR d.category LIKE ? OR d.category LIKE ? OR d.category LIKE ?)")
+            params.extend([category, f"{category},%", f"%,{category},%", f"%,{category}"])
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY d.id DESC"
@@ -137,8 +137,15 @@ class SQLiteDrinkRepository:
 
     def get_drink_categories(self) -> List[str]:
         with self._connect() as con:
-            rows = con.execute("SELECT DISTINCT category FROM drinks ORDER BY category").fetchall()
-            return [r["category"] for r in rows]
+            rows = con.execute("SELECT DISTINCT category FROM drinks").fetchall()
+            cats = set()
+            for r in rows:
+                if r["category"]:
+                    for c in r["category"].split(','):
+                        c = c.strip()
+                        if c:
+                            cats.add(c)
+            return sorted(list(cats))
 
     def get_drink_by_id(self, drink_id: int) -> Optional[dict]:
         with self._connect() as con:

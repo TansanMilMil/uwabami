@@ -126,9 +126,13 @@ export default function DrinkDetailPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <Badge variant="outline" className="bg-zinc-950 border-amber-600/30 text-amber-500 px-3 py-1 text-sm">
-                {drink.category}
-              </Badge>
+              <div className="flex gap-2 flex-wrap">
+                {drink.category.split(',').map(c => c.trim()).filter(Boolean).map(c => (
+                  <Badge key={c} variant="outline" className="bg-zinc-950 border-amber-600/30 text-amber-500 px-3 py-1 text-sm">
+                    {c}
+                  </Badge>
+                ))}
+              </div>
               <Badge variant="secondary" className={`${drink.status === 'drunk' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} border`}>
                 {drink.status === 'drunk' ? '呑んだ' : '呑みたい'}
               </Badge>

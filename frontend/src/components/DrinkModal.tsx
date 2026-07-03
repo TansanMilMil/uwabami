@@ -14,7 +14,7 @@ interface Props {
 
 export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: Props) {
   const [name, setName] = useState(drink?.name || '')
-  const [category, setCategory] = useState(drink?.category || '')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(drink?.category ? drink.category.split(',').map(c => c.trim()).filter(c => c) : [])
   const [status, setStatus] = useState<'drunk' | 'want_to_drink'>(drink?.status || initialStatus || 'drunk')
   const [origin, setOrigin] = useState(drink?.origin || '')
   const [price, setPrice] = useState(drink?.price?.toString() || '')
@@ -28,6 +28,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
 
   const [categories, setCategories] = useState<string[]>([])
   const [isNewCategory, setIsNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -43,15 +44,12 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   useEffect(() => {
     getDrinkCategories().then(cats => {
       setCategories(cats)
-      if (cats.length === 0 || (drink && !cats.includes(drink.category))) {
-        setIsNewCategory(true)
-      }
     }).catch(console.error)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || !category) {
+    if (!name || selectedCategories.length === 0) {
       toast.error('名前と種類は必須です')
       return
     }
@@ -59,7 +57,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     try {
       const payload = {
         name,
-        category,
+        category: selectedCategories.join(','),
         status,
         origin: origin || null,
         price: price ? parseInt(price, 10) : null,
@@ -99,6 +97,26 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     } else {
       setSelectedTasteIds([...selectedTasteIds, id])
     }
+  }
+
+  const toggleCategory = (c: string) => {
+    if (selectedCategories.includes(c)) {
+      setSelectedCategories(selectedCategories.filter(x => x !== c))
+    } else {
+      setSelectedCategories([...selectedCategories, c])
+    }
+  }
+
+  const addNewCategory = () => {
+    const c = newCategoryName.trim()
+    if (c && !selectedCategories.includes(c)) {
+      setSelectedCategories([...selectedCategories, c])
+      if (!categories.includes(c)) {
+        setCategories([...categories, c])
+      }
+    }
+    setNewCategoryName('')
+    setIsNewCategory(false)
   }
 
   return (
@@ -143,48 +161,47 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">種類 <span className="text-red-400">*</span></label>
-              {isNewCategory ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    placeholder="例: 日本酒, ワイン"
-                    className="bg-zinc-950 border-zinc-800 text-white"
-                  />
-                  {categories.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => { setIsNewCategory(false); setCategory('') }}
-                      className="shrink-0 text-xs text-zinc-400 hover:text-white px-2 rounded-md border border-zinc-800 hover:bg-zinc-800 transition-colors"
-                    >
-                      一覧から選ぶ
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <select
-                  value={category}
-                  onChange={e => {
-                    if (e.target.value === '__new__') {
-                      setIsNewCategory(true)
-                      setCategory('')
-                    } else {
-                      setCategory(e.target.value)
-                    }
-                  }}
-                  className="w-full h-10 px-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none"
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-zinc-400 mb-1.5">種類 <span className="text-red-400">*</span></label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {categories.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCategory(c)}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+                    selectedCategories.includes(c)
+                      ? 'bg-amber-600/20 border-amber-500/50 text-amber-400'
+                      : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
                 >
-                  <option value="" disabled>選択してください</option>
-                  {categories.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                  <option value="__new__">＋ 新しい種類を追加</option>
-                </select>
-              )}
+                  {c}
+                </button>
+              ))}
             </div>
+            {isNewCategory ? (
+              <div className="flex gap-2 mt-2">
+                <Input
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  placeholder="例: 日本酒"
+                  className="bg-zinc-950 border-zinc-800 text-white flex-1"
+                />
+                <button type="button" onClick={addNewCategory} className="shrink-0 px-3 rounded-md border border-zinc-800 hover:bg-zinc-800 text-white text-sm transition-colors">追加</button>
+                <button type="button" onClick={() => { setIsNewCategory(false); setNewCategoryName(''); }} className="shrink-0 px-3 rounded-md border border-zinc-800 hover:bg-zinc-800 text-zinc-400 text-sm transition-colors">キャンセル</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsNewCategory(true)}
+                className="text-sm text-zinc-400 hover:text-white px-2 py-1 rounded-md border border-zinc-800 hover:bg-zinc-800 transition-colors"
+              >
+                ＋ 新しい種類を追加
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">ステータス</label>
               <select 
@@ -196,6 +213,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
                 <option value="want_to_drink">呑みたい</option>
               </select>
             </div>
+            <div className="invisible"></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

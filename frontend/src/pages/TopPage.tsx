@@ -135,9 +135,13 @@ export default function TopPage() {
                     <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors">
                       {drink.name}
                     </h3>
-                    <Badge variant="outline" className="bg-zinc-950 border-zinc-700 text-zinc-300 whitespace-nowrap">
-                      {drink.category}
-                    </Badge>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {drink.category.split(',').map(c => c.trim()).filter(Boolean).map(c => (
+                        <Badge key={c} variant="outline" className="bg-zinc-950 border-zinc-700 text-zinc-300 whitespace-nowrap">
+                          {c}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                   
                   {drink.origin && (
