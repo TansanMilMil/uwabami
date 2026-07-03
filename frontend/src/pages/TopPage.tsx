@@ -103,8 +103,15 @@ export default function TopPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {drinks.map(drink => (
             <Link key={drink.id} to={`/drinks/${drink.id}`}>
-              <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group">
-                <CardContent className="p-5 flex flex-col h-full">
+              <Card className="h-full border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/10 hover:-translate-y-1 group overflow-hidden flex flex-col">
+                {drink.image_path ? (
+                  <div className="w-full h-32 overflow-hidden">
+                    <img src={`/uploads/${drink.image_path}`} alt={drink.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                ) : (
+                  <div className="w-full h-2 bg-zinc-800" />
+                )}
+                <CardContent className="p-5 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors line-clamp-1" title={drink.name}>
                       {drink.name}

@@ -19,6 +19,7 @@ _SCHEMA_STATEMENTS = (
         origin TEXT,
         price INTEGER,
         memo TEXT,
+        image_path TEXT,
         created_by INTEGER NOT NULL,
         FOREIGN KEY (created_by) REFERENCES users(id)
     )
@@ -69,6 +70,11 @@ class SQLiteDrinkRepository:
         with self._connect() as con:
             for stmt in _SCHEMA_STATEMENTS:
                 con.execute(stmt)
+            # Migration
+            try:
+                con.execute("ALTER TABLE drinks ADD COLUMN image_path TEXT")
+            except sqlite3.OperationalError:
+                pass
 
     def get_user_by_username(self, username: str) -> Optional[dict]:
         with self._connect() as con:
@@ -142,6 +148,10 @@ class SQLiteDrinkRepository:
     def delete_drink(self, drink_id: int) -> None:
         with self._connect() as con:
             con.execute("DELETE FROM drinks WHERE id = ?", (drink_id,))
+
+    def set_drink_image_path(self, drink_id: int, image_path: Optional[str]) -> None:
+        with self._connect() as con:
+            con.execute("UPDATE drinks SET image_path = ? WHERE id = ?", (image_path, drink_id))
 
     def get_taste_types(self) -> List[dict]:
         with self._connect() as con:

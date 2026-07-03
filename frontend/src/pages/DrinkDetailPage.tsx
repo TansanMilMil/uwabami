@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit2, MapPin, Tag, Wine, Plus, Calendar, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { getDrink, getDrinkLogs, deleteDrink, deleteDrinkLog, Drink, DrinkLog } from '../api'
+import { getDrink, getDrinkLogs, deleteDrink, deleteDrinkLog, uploadDrinkImage, deleteDrinkImage, Drink, DrinkLog } from '../api'
 import { UserContext } from '../contexts/UserContext'
 import DrinkModal from '../components/DrinkModal'
 import DrinkLogModal from '../components/DrinkLogModal'
@@ -65,6 +65,36 @@ export default function DrinkDetailPage() {
     }
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+    try {
+      setLoading(true)
+      await uploadDrinkImage(Number(id), file)
+      toast.success('画像をアップロードしました')
+      await loadData()
+    } catch (err) {
+      toast.error('画像のアップロードに失敗しました')
+    } finally {
+      setLoading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleDeleteImage = async () => {
+    if (!id || !window.confirm('本当に画像を削除しますか？')) return
+    try {
+      setLoading(true)
+      await deleteDrinkImage(Number(id))
+      toast.success('画像を削除しました')
+      await loadData()
+    } catch (err) {
+      toast.error('画像の削除に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return <div className="animate-pulse space-y-8">
       <div className="h-8 w-24 bg-zinc-800 rounded" />
@@ -103,20 +133,38 @@ export default function DrinkDetailPage() {
                 {drink.status === 'drunk' ? '呑んだ' : '呑みたい'}
               </Badge>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
               {drink.name}
             </h1>
+            {drink.image_path && (
+              <div className="relative group rounded-xl overflow-hidden mb-6 w-full max-w-sm">
+                <img src={`/uploads/${drink.image_path}`} alt={drink.name} className="w-full h-auto object-cover rounded-xl" />
+                {canEdit && (
+                  <button onClick={handleDeleteImage} className="absolute top-2 right-2 bg-red-600/80 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           
           {canEdit && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800">
-                <Edit2 className="h-4 w-4 mr-2" />
-                編集
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDeleteDrink} className="border-zinc-700 bg-zinc-900 hover:bg-red-950 hover:text-red-400 hover:border-red-900">
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800">
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  編集
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDeleteDrink} className="border-zinc-700 bg-zinc-900 hover:bg-red-950 hover:text-red-400 hover:border-red-900">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center mt-2">
+                <input type="file" id="image-upload" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                <label htmlFor="image-upload" className="cursor-pointer text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 px-3 rounded-md transition-colors border border-zinc-700">
+                  {drink.image_path ? '画像を変更' : '画像を追加'}
+                </label>
+              </div>
             </div>
           )}
         </div>

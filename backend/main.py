@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from routers import auth, drinks, drink_logs, taste_types
+from routers import auth, drinks, drink_logs, taste_types, image
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -30,6 +30,7 @@ app.include_router(auth.router)
 app.include_router(drinks.router)
 app.include_router(drink_logs.router)
 app.include_router(taste_types.router)
+app.include_router(image.router)
 
 uploads_dir = os.environ.get("UPLOADS_DIR", "/app/uploads")
 os.makedirs(uploads_dir, exist_ok=True)

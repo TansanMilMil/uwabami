@@ -33,7 +33,7 @@ export default function App() {
   return (
     <UserContext.Provider value={currentUsername}>
       <BrowserRouter>
-        <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/30">
+        <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/30">
           <Header onLoginClick={() => setShowLogin(true)} />
           <main className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-4xl p-4 md:p-8">

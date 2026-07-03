@@ -11,6 +11,7 @@ export interface Drink {
   origin?: string | null
   price?: number | null
   memo?: string | null
+  image_path?: string | null
   created_by: number
   taste_types: TasteType[]
 }
@@ -122,6 +123,22 @@ export async function updateDrink(id: number, data: Partial<Drink>): Promise<Dri
 export async function deleteDrink(id: number): Promise<void> {
   const res = await authFetch(`${BASE}/drinks/${id}`, { method: 'DELETE' })
   assertOk(res, 'お酒の削除に失敗しました')
+}
+
+export async function uploadDrinkImage(id: number, file: File): Promise<{ image_path: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await authFetch(`${BASE}/drinks/${id}/image`, {
+    method: 'POST',
+    body: formData,
+  })
+  assertOk(res, '画像のアップロードに失敗しました')
+  return res.json()
+}
+
+export async function deleteDrinkImage(id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/drinks/${id}/image`, { method: 'DELETE' })
+  assertOk(res, '画像の削除に失敗しました')
 }
 
 // Logs

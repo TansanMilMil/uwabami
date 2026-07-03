@@ -47,6 +47,7 @@ class Drink(BaseModel):
     origin: str | None = None
     price: int | None = None
     memo: str | None = None
+    image_path: str | None = None
     created_by: int
     taste_types: list[TasteType] = []
 
