@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from db import repo
+from db import repo, hash_password, verify_password
 from models import UserCreate, User
 
 limiter = Limiter(key_func=get_remote_address)
@@ -18,8 +18,6 @@ JWT_EXPIRE_DAYS = int(os.environ.get("UWABAMI_JWT_EXPIRE_DAYS", "7"))
 SECURE_COOKIE = os.environ.get("UWABAMI_SECURE_COOKIE", "true").lower() == "true"
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
 
 def create_access_token(user_id: int, username: str) -> str:
     expire = datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS)
@@ -82,7 +80,7 @@ def login(request: Request, body: UserCreate, response: Response):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    if user["password_hash"] != hash_password(body.password):
+    if not verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token(user["id"], user["username"])
