@@ -131,6 +131,10 @@ export default function TopPage() {
         </div>
       </div>
 
+      {!loading && drinks.length > 0 && (
+        <p className="text-sm text-zinc-400">{drinks.length}件のお酒が見つかりました</p>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
