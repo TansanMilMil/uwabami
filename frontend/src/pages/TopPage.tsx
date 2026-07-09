@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useLocation } from 'react-router-dom'
 import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare, Star, Calendar, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import DrinkDetailModal from '../components/DrinkDetailModal'
 
 export default function TopPage() {
   const currentUsername = useContext(UserContext)
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>(
     searchParams.get('status') === 'want_to_drink' ? 'want_to_drink' : 'drunk'
@@ -39,6 +40,14 @@ export default function TopPage() {
   useEffect(() => {
     getDrinkCategories().then(setCategories).catch(console.error)
   }, [])
+
+  useEffect(() => {
+    if ((location.state as { resetSearch?: boolean } | null)?.resetSearch) {
+      setActiveTab('drunk')
+      setSearch('')
+      setCategory('')
+    }
+  }, [location.state])
 
   useEffect(() => {
     const timer = setTimeout(() => {
