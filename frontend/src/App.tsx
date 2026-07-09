@@ -49,7 +49,7 @@ export default function App() {
         <div className="flex h-dvh flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/30">
           <Header onLoginClick={() => setShowLogin(true)} />
           <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-4xl p-4 md:p-8">
+            <div className="mx-auto w-full max-w-4xl lg:max-w-6xl p-4 md:p-8">
               <RoutedContent />
             </div>
           </main>

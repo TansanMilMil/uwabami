@@ -123,13 +123,13 @@ export default function TopPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-40 rounded-xl bg-zinc-900/50 animate-pulse border border-zinc-800" />
           ))}
         </div>
       ) : drinks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {drinks.map(drink => (
             <div
               key={drink.id}
