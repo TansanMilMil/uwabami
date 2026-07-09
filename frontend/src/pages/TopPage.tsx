@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare, Star, Calendar, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -11,9 +12,12 @@ import DrinkDetailModal from '../components/DrinkDetailModal'
 
 export default function TopPage() {
   const currentUsername = useContext(UserContext)
-  const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>('drunk')
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<'drunk' | 'want_to_drink'>(
+    searchParams.get('status') === 'want_to_drink' ? 'want_to_drink' : 'drunk'
+  )
+  const [search, setSearch] = useState(searchParams.get('q') ?? '')
+  const [category, setCategory] = useState(searchParams.get('category') ?? '')
   const [categories, setCategories] = useState<string[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,6 +43,11 @@ export default function TopPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       loadDrinks()
+      const params: Record<string, string> = {}
+      if (search) params.q = search
+      if (category) params.category = category
+      if (activeTab !== 'drunk') params.status = activeTab
+      setSearchParams(params)
     }, 300)
     return () => clearTimeout(timer)
   }, [activeTab, search, category])
