@@ -12,8 +12,8 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 @router.get("/api/drinks")
-def get_drinks(q: Optional[str] = Query(None), status: Optional[str] = Query(None), category: Optional[str] = Query(None)):
-    drinks = repo.get_drinks(status=status, q=q, category=category)
+def get_drinks(q: Optional[str] = Query(None), status: Optional[str] = Query(None), category: Optional[str] = Query(None), sort: Optional[str] = Query(None)):
+    drinks = repo.get_drinks(status=status, q=q, category=category, sort=sort)
     return drinks
 
 @router.post("/api/drinks")

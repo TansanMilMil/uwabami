@@ -19,6 +19,7 @@ export default function TopPage() {
   )
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
   const [category, setCategory] = useState(searchParams.get('category') ?? '')
+  const [sort, setSort] = useState(searchParams.get('sort') === 'rating' ? 'rating' : 'created')
   const [categories, setCategories] = useState<string[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +29,7 @@ export default function TopPage() {
   const loadDrinks = async () => {
     setLoading(true)
     try {
-      const data = await getDrinks(search, activeTab, category)
+      const data = await getDrinks(search, activeTab, category, sort)
       setDrinks(data)
     } catch (e) {
       console.error(e)
@@ -46,6 +47,7 @@ export default function TopPage() {
       setActiveTab('drunk')
       setSearch('')
       setCategory('')
+      setSort('created')
     }
   }, [location.state])
 
@@ -56,10 +58,11 @@ export default function TopPage() {
       if (search) params.q = search
       if (category) params.category = category
       if (activeTab !== 'drunk') params.status = activeTab
+      if (sort !== 'created') params.sort = sort
       setSearchParams(params)
     }, 300)
     return () => clearTimeout(timer)
-  }, [activeTab, search, category])
+  }, [activeTab, search, category, sort])
 
   const handleSaved = (drink: Drink) => {
     setShowModal(false)
@@ -127,6 +130,14 @@ export default function TopPage() {
             {categories.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
+          </select>
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
+          >
+            <option value="created">登録順</option>
+            <option value="rating">評価順</option>
           </select>
         </div>
       </div>

@@ -91,7 +91,7 @@ class SQLiteDrinkRepository:
             cur = con.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
             return cur.lastrowid
 
-    def get_drinks(self, status: Optional[str] = None, q: Optional[str] = None, category: Optional[str] = None) -> List[dict]:
+    def get_drinks(self, status: Optional[str] = None, q: Optional[str] = None, category: Optional[str] = None, sort: Optional[str] = None) -> List[dict]:
         query = """
             SELECT d.*,
                 (SELECT dl.memo FROM drink_logs dl
@@ -127,7 +127,10 @@ class SQLiteDrinkRepository:
             params.extend([category, f"{category},%", f"%,{category},%", f"%,{category}"])
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY latest_star_rating DESC, d.id DESC"
+        if sort == "rating":
+            query += " ORDER BY latest_star_rating DESC, d.id DESC"
+        else:
+            query += " ORDER BY d.id DESC"
 
         with self._connect() as con:
             rows = con.execute(query, tuple(params)).fetchall()
