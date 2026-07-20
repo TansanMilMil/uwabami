@@ -104,14 +104,14 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   }
 
   const handleAiSuggest = async () => {
-    if (!name.trim()) {
-      toast.error('先に名前を入力してください')
+    if (!name.trim() && !imageFile) {
+      toast.error('名前を入力するか、画像を選択してください')
       return
     }
     setAiLoading(true)
     setAiError(null)
     try {
-      const result = await suggestDrinkInfo(name.trim())
+      const result = await suggestDrinkInfo(name.trim(), imageFile)
       setAiSuggestion(result)
     } catch (e: any) {
       const message = e.message || 'AIサジェストの取得に失敗しました'
@@ -120,6 +120,12 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
     } finally {
       setAiLoading(false)
     }
+  }
+
+  const applySuggestedName = () => {
+    const n = aiSuggestion?.name?.trim()
+    if (!n) return
+    setName(n)
   }
 
   const applySuggestedCategory = () => {
@@ -217,7 +223,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
               <button
                 type="button"
                 onClick={handleAiSuggest}
-                disabled={aiLoading || !name.trim()}
+                disabled={aiLoading || (!name.trim() && !imageFile)}
                 className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -229,10 +235,16 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
 
           {(aiSuggestion || aiError) && (
             <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 space-y-3">
-              <p className="text-xs text-zinc-500">ウェブ検索を元にした参考情報です。内容は必ずご確認ください。</p>
+              <p className="text-xs text-zinc-500">AIによる参考情報です。内容は必ずご確認ください。</p>
               {aiError && <p className="text-sm text-red-400">{aiError}</p>}
               {aiSuggestion && (
                 <div className="space-y-2.5">
+                  {aiSuggestion.name && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-zinc-300 truncate">名前: {aiSuggestion.name}</span>
+                      <button type="button" onClick={applySuggestedName} className="shrink-0 text-xs px-2.5 py-1 rounded-md border border-amber-500/50 text-amber-400 hover:bg-amber-600/20 transition-colors">反映</button>
+                    </div>
+                  )}
                   {aiSuggestion.category && (
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm text-zinc-300 truncate">種類: {aiSuggestion.category}</span>
@@ -274,14 +286,25 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">画像</label>
               {imagePreview ? (
-                <div className="relative w-full max-w-[160px]">
-                  <img src={imagePreview} alt="プレビュー" className="w-full h-auto rounded-lg border border-zinc-800" />
+                <div className="space-y-2">
+                  <div className="relative w-full max-w-[160px]">
+                    <img src={imagePreview} alt="プレビュー" className="w-full h-auto rounded-lg border border-zinc-800" />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreview(null) }}
+                      className="absolute top-1 right-1 bg-red-600/80 p-1 rounded-full text-white hover:bg-red-700"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { setImageFile(null); setImagePreview(null) }}
-                    className="absolute top-1 right-1 bg-red-600/80 p-1 rounded-full text-white hover:bg-red-700"
+                    onClick={handleAiSuggest}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    この画像でAIサジェスト
                   </button>
                 </div>
               ) : (

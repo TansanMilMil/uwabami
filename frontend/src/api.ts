@@ -157,6 +157,7 @@ export async function deleteDrinkImage(id: number): Promise<void> {
 }
 
 export interface DrinkSuggestResult {
+  name: string | null
   category: string | null
   origin: string | null
   taste_type_ids: number[]
@@ -164,8 +165,14 @@ export interface DrinkSuggestResult {
   price: number | null
 }
 
-export async function suggestDrinkInfo(name: string): Promise<DrinkSuggestResult> {
-  const res = await authFetch(`${BASE}/drinks/suggest`, jsonInit('POST', { name }))
+export async function suggestDrinkInfo(name: string, image?: File | null): Promise<DrinkSuggestResult> {
+  const formData = new FormData()
+  if (name) formData.append('name', name)
+  if (image) formData.append('image', image)
+  const res = await authFetch(`${BASE}/drinks/suggest`, {
+    method: 'POST',
+    body: formData,
+  })
   if (res.status === 429) {
     throw new Error('リクエストが多すぎます。しばらく待ってから再試行してください')
   }
