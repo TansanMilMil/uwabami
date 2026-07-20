@@ -44,8 +44,28 @@ export class UnauthorizedError extends Error {
   }
 }
 
+let refreshPromise: Promise<boolean> | null = null
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then(res => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
 export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  const res = await fetch(input, { credentials: 'include', ...init })
+  let res = await fetch(input, { credentials: 'include', ...init })
+  if (res.status === 401 && !input.includes('/auth/refresh')) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      res = await fetch(input, { credentials: 'include', ...init })
+    }
+  }
   if (res.status === 401) {
     window.dispatchEvent(new Event('unauthorized'))
     throw new UnauthorizedError()
