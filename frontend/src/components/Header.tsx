@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { LogIn, LogOut, Wine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserContext } from '../contexts/UserContext'
@@ -22,7 +22,7 @@ export default function Header({ onLoginClick }: { onLoginClick: () => void }) {
           state={{ resetSearch: true }}
           className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95"
         >
-          <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-1.5 rounded-lg shadow-lg shadow-amber-500/20">
+          <div className="bg-linear-to-br from-amber-400 to-orange-600 p-1.5 rounded-lg shadow-lg shadow-amber-500/20">
             <Wine className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-zinc-100 group-hover:text-amber-500 transition-colors">Uwabami</span>

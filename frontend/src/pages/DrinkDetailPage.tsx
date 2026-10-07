@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router'
 import { ArrowLeft, Edit2, MapPin, Tag, Wine, Plus, Calendar, Star, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -120,7 +120,7 @@ export default function DrinkDetailPage() {
         一覧に戻る
       </button>
 
-      <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 shadow-xl p-6 sm:p-10 backdrop-blur-sm">
+      <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 shadow-xl p-6 sm:p-10 backdrop-blur-xs">
         <div className="absolute top-0 right-0 p-32 bg-amber-500/5 rounded-full blur-3xl -z-10" />
         
         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
@@ -193,7 +193,7 @@ export default function DrinkDetailPage() {
             <span className="text-sm text-zinc-500 mb-2 block">味のタイプ</span>
             <div className="flex flex-wrap gap-2">
               {drink.taste_types.map(t => (
-                <span key={t.id} className="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 shadow-sm">
+                <span key={t.id} className="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 shadow-xs">
                   {t.name}
                 </span>
               ))}

@@ -1,20 +1,22 @@
 import os
 import hashlib
-from passlib.context import CryptContext
+import bcrypt
 
 from repository.sqlite import SQLiteDrinkRepository
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt>=5 raises on inputs over 72 bytes; passlib silently truncated, so keep that for existing hashes.
+def _bcrypt_input(password: str) -> bytes:
+    return password.encode()[:72]
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_bcrypt_input(password), bcrypt.gensalt()).decode()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         # Check for legacy sha256 hashes (64 hex chars)
         if len(hashed_password) == 64 and all(c in '0123456789abcdefABCDEF' for c in hashed_password):
             return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
-        return pwd_context.verify(plain_password, hashed_password)
+        return bcrypt.checkpw(_bcrypt_input(plain_password), hashed_password.encode())
     except Exception:
         return False
 

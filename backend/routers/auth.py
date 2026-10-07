@@ -1,8 +1,8 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from jose import JWTError, jwt
+import jwt
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -25,12 +25,12 @@ _REFRESH_COOKIE_KWARGS = {"httponly": True, "samesite": "lax", "secure": SECURE_
 
 
 def create_access_token(user_id: int, username: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
     return jwt.encode({"sub": str(user_id), "username": username, "type": "access", "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
 def create_refresh_token(user_id: int, username: str) -> str:
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     return jwt.encode({"sub": str(user_id), "username": username, "type": "refresh", "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -63,7 +63,7 @@ def get_current_user(request: Request) -> dict:
                 user = repo.get_user_by_id(int(payload["sub"]))
                 if user:
                     return user
-        except (JWTError, ValueError):
+        except (jwt.InvalidTokenError, ValueError):
             pass
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -75,7 +75,7 @@ def get_optional_user(request: Request) -> dict | None:
             payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
             if payload.get("type") == "access":
                 return repo.get_user_by_id(int(payload["sub"]))
-        except (JWTError, ValueError):
+        except (jwt.InvalidTokenError, ValueError):
             pass
     return None
 
@@ -121,7 +121,7 @@ def refresh(request: Request, response: Response):
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
         user_id = int(payload["sub"])
-    except (JWTError, ValueError):
+    except (jwt.InvalidTokenError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     user = repo.get_user_by_id(user_id)

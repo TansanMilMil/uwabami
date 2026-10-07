@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+openai
+httpx
+beautifulsoup4
+lxml
+pyjwt
+slowapi
+Pillow
+python-multipart
+bcrypt

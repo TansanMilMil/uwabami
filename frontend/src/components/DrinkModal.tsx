@@ -207,7 +207,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
       <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">{drink ? 'お酒を編集' : '新しいお酒を登録'}</h2>
@@ -365,7 +365,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
               <select 
                 value={status} 
                 onChange={e => setStatus(e.target.value as any)}
-                className="w-full h-10 px-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none"
+                className="w-full h-10 px-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 appearance-none"
               >
                 <option value="drunk">呑んだ</option>
                 <option value="want_to_drink">呑みたい</option>
@@ -446,7 +446,7 @@ export default function DrinkModal({ drink, initialStatus, onClose, onSaved }: P
               onChange={e => setMemo(e.target.value)} 
               rows={3}
               placeholder="共通のメモや特徴など..."
-              className="w-full p-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+              className="w-full p-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 resize-none"
             />
           </div>
 

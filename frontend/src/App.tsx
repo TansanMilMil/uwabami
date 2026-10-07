@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router'
 import { Toaster } from 'sonner'
 import TopPage from './pages/TopPage'
 import DrinkDetailPage from './pages/DrinkDetailPage'
@@ -58,7 +58,7 @@ export default function App() {
         {showLogin && (
           <div
             onClick={() => setShowLogin(false)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs"
           >
             <div onClick={e => e.stopPropagation()} className="w-full max-w-xs animate-in fade-in zoom-in duration-200">
               <LoginPage onLoginSuccess={() => setShowLogin(false)} />

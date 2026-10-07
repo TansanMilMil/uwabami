@@ -45,7 +45,7 @@ export default function DrinkLogModal({ drinkId, log, onClose, onSaved }: Props)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
       <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">{log ? '記録を編集' : '呑んだ記録を追加'}</h2>
@@ -73,7 +73,7 @@ export default function DrinkLogModal({ drinkId, log, onClose, onSaved }: Props)
                   key={val}
                   type="button"
                   onClick={() => setRating(val)}
-                  className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                  className="p-1 transition-transform hover:scale-110 focus:outline-hidden"
                 >
                   <Star className={`h-8 w-8 ${val <= rating ? 'fill-amber-500 text-amber-500' : 'text-zinc-700'}`} />
                 </button>
@@ -88,7 +88,7 @@ export default function DrinkLogModal({ drinkId, log, onClose, onSaved }: Props)
               onChange={e => setMemo(e.target.value)} 
               rows={4}
               placeholder="フルーティで美味しかった等..."
-              className="w-full p-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+              className="w-full p-3 rounded-md bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 resize-none"
             />
           </div>
 

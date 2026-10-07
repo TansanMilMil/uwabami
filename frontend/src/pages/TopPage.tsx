@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useSearchParams, useLocation } from 'react-router-dom'
+import { useSearchParams, useLocation } from 'react-router'
 import { Plus, Search, Wine, Beer, MapPin, Tag, MessageSquare, Star, Calendar, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -94,7 +94,7 @@ export default function TopPage() {
             onClick={() => setActiveTab('drunk')}
             className={`flex-1 sm:w-32 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'drunk'
-                ? 'bg-zinc-800 text-white shadow-sm'
+                ? 'bg-zinc-800 text-white shadow-xs'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
@@ -104,7 +104,7 @@ export default function TopPage() {
             onClick={() => setActiveTab('want_to_drink')}
             className={`flex-1 sm:w-32 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'want_to_drink'
-                ? 'bg-zinc-800 text-white shadow-sm'
+                ? 'bg-zinc-800 text-white shadow-xs'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
@@ -124,7 +124,7 @@ export default function TopPage() {
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
+            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
           >
             <option value="">すべての種類</option>
             {categories.map(c => (
@@ -134,7 +134,7 @@ export default function TopPage() {
           <select
             value={sort}
             onChange={e => setSort(e.target.value)}
-            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
+            className="h-10 px-3 rounded-md bg-zinc-950/50 border border-zinc-700 text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 appearance-none shrink-0"
           >
             <option value="created">登録順</option>
             <option value="rating">評価順</option>
@@ -176,7 +176,7 @@ export default function TopPage() {
                 ) : (
                   <div className="w-2 shrink-0 bg-zinc-800" />
                 )}
-                <CardContent className="p-5 flex flex-col flex-grow min-w-0">
+                <CardContent className="p-5 flex flex-col grow min-w-0">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-bold text-lg text-zinc-100 group-hover:text-amber-400 transition-colors">
                       {drink.name}

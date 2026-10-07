@@ -5,8 +5,8 @@
 インフラ・使用技術は既存プロジェクト「nina-njaa」の構成をベースにする。
 
 ## 2. 技術スタック・インフラ構成
-- **フロントエンド**: React 18, TypeScript 5, Vite 5, Tailwind CSS 3, Radix UI, React Router DOM v6
-- **バックエンド**: Python 3.12, FastAPI, SQLite
+- **フロントエンド**: React 19, TypeScript 7, Vite 8, Tailwind CSS 4, Radix UI, React Router v8
+- **バックエンド**: Python 3.14, FastAPI, SQLite
 - **インフラ/ホスティング**: Docker Compose (frontend, backend, nginx), NGINX (リバースプロキシ + 静的ファイル配信), マルチユーザー用JWT認証
 
 ## 3. データベース設計 (SQLite)

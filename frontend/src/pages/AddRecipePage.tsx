@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createRecipe } from '../api'
@@ -189,7 +189,7 @@ export default function AddRecipePage() {
               onChange={e => updateStep(i, e.target.value)}
               rows={2}
               placeholder={`手順 ${i + 1}`}
-              className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button type="button" variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
           </div>

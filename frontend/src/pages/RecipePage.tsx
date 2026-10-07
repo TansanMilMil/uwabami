@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router'
 import { Star, X } from 'lucide-react'
 import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe, uploadRecipeImage, deleteRecipeImage } from '../api'
 import type { RecipeDetail, Ingredient, CookedLogEntry } from '../api'
@@ -376,7 +376,7 @@ export default function RecipePage() {
                 value={step.description}
                 onChange={e => updateStep(i, e.target.value)}
                 rows={2}
-                className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />
               <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
             </div>
@@ -443,7 +443,7 @@ export default function RecipePage() {
           <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
             <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
             <textarea
-              className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               rows={4}
               placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
               value={cookLogMemo}

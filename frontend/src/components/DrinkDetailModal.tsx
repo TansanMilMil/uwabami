@@ -107,7 +107,7 @@ export default function DrinkDetailModal({ drinkId, onClose, onChanged }: Props)
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto"
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -199,7 +199,7 @@ export default function DrinkDetailModal({ drinkId, onClose, onChanged }: Props)
                 <span className="text-sm text-zinc-500 mb-2 block">味のタイプ</span>
                 <div className="flex flex-wrap gap-2">
                   {drink.taste_types.map(t => (
-                    <span key={t.id} className="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 shadow-sm">
+                    <span key={t.id} className="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 shadow-xs">
                       {t.name}
                     </span>
                   ))}

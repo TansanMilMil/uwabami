@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { getCookedLogs } from '../api'
 import type { CookedLogEntry } from '../api'
 
@@ -37,7 +37,7 @@ export default function CookedLogsPage() {
             <Link
               key={entry.recipe_id}
               to={`/cooked-logs/${entry.recipe_id}`}
-              className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent"
+              className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-xs transition-colors hover:bg-accent"
             >
               {entry.image_path && (
                 <img
