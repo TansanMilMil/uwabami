@@ -6,12 +6,14 @@ import jwt
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from db import repo, hash_password, verify_password
+from db import repo, verify_password
 from models import UserCreate, User
 
 limiter = Limiter(key_func=get_remote_address)
 
-JWT_SECRET_KEY = os.environ.get("UWABAMI_JWT_SECRET_KEY", "dummy_secret_key")
+JWT_SECRET_KEY = os.environ.get("UWABAMI_JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise RuntimeError("環境変数 UWABAMI_JWT_SECRET_KEY を設定してください")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("UWABAMI_JWT_EXPIRE_MINUTES", "15"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("UWABAMI_REFRESH_TOKEN_EXPIRE_DAYS", "30"))
@@ -81,19 +83,6 @@ def get_optional_user(request: Request) -> dict | None:
 
 
 router = APIRouter()
-
-@router.post("/api/auth/register")
-@limiter.limit("5/minute")
-def register(request: Request, body: UserCreate, response: Response):
-    if repo.get_user_by_username(body.username):
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    hashed_pw = hash_password(body.password)
-    user_id = repo.create_user(body.username, hashed_pw)
-
-    set_auth_cookies(response, user_id, body.username)
-    return {"id": user_id, "username": body.username}
-
 
 @router.post("/api/auth/login")
 @limiter.limit("5/minute")
