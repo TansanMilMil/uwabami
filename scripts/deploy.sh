@@ -24,6 +24,7 @@ rsync -avz --delete \
     --exclude='db/*.db' \
     --exclude='frontend/dist/' \
     --exclude='backups/' \
+    --exclude='/logs/' \
     --exclude='.env' \
     ./ "${TARGET_HOST}:${TARGET_DIR}/"
 
