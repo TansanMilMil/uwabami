@@ -11,6 +11,15 @@ task dev
 
 Vite dev server と uvicorn（`:8001`）が起動する。ブラウザでのE2E確認に関する注意は [CLAUDE.md](./CLAUDE.md) を参照。
 
+## ログイン
+
+Googleアカウントでのみログインできる（OpenID Connect の認可コードフロー + PKCE）。ログインできるのは `UWABAMI_GOOGLE_ALLOWED_ACCOUNTS` に `email=username` のカンマ区切りで列挙したアカウントだけで、ログイン後は対応する `users` テーブルのユーザーとして扱う。未登録のユーザー名は初回ログイン時に作られる。一覧から外したユーザーのトークンは、有効期限内でも拒否する。
+
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials) で OAuth クライアント ID（種類: ウェブ アプリケーション）を作成し、「承認済みのリダイレクト URI」に次を登録する。`UWABAMI_GOOGLE_REDIRECT_URI` はこれと完全一致させる。
+
+- 本番: `https://uwabami.ts-soda.net/api/auth/google/callback`
+- 開発: `http://localhost:5173/api/auth/google/callback`
+
 ## デプロイ
 
 ```bash
@@ -28,7 +37,7 @@ venus の `~/uwabami` に rsync し、`docker compose build` してから起動�
 - さくらのVPS `venus`（`os3-386-26416.vs.sakura.ne.jp`）。SSHユーザーは `alma`
 - 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する
 - `UWABAMI_JWT_SECRET_KEY` が未設定だとbackendは起動しない。本番の値は64文字の独自値
-- ユーザー登録APIはない。本番のユーザーは、`UWABAMI_BASIC_AUTH_USER` / `UWABAMI_BASIC_AUTH_PASS` から起動時に作られる `admin` だけ
+- `UWABAMI_GOOGLE_CLIENT_ID` / `UWABAMI_GOOGLE_CLIENT_SECRET` / `UWABAMI_GOOGLE_REDIRECT_URI` / `UWABAMI_GOOGLE_ALLOWED_ACCOUNTS` のどれかが未設定でもbackendは起動しない。`UWABAMI_BASIC_AUTH_USER` / `UWABAMI_BASIC_AUTH_PASS` は使わない
 - nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。各行の先頭はリクエストのHost、その次のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。行末の `rid=` はnginxの `$request_id`（リクエストごとの32桁のID。Slack通知の `request_id` と同じ値）。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
 - 遮断リスト（JPCERTのIoCなど）は、venus の `~/.env` の `VENUS_NGINX_BLOCKLIST_DIR`（`/home/alma/venus-monitoring/nginx-blocklist`）を `/etc/nginx/blocklist` にマウントして読む。未設定だとリポジトリ内の空のリストが使われ、何も遮断しない
 - 利用者のIPを取るには、CloudFrontのオリジンリクエストポリシーで `CloudFront-Viewer-Address` を転送する必要がある（`AllViewerAndCloudFrontHeaders-2022-06`）。2026-10-09 時点では `AllViewer` で転送していない

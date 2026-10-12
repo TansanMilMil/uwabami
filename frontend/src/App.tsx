@@ -9,6 +9,22 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { checkAuth } from './api'
 import { UserContext } from './contexts/UserContext'
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  forbidden: 'このGoogleアカウントではログインできません',
+  failed: 'ログインに失敗しました',
+}
+
+function consumeLoginError(): string | null {
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('login_error')
+  if (code === null) return null
+  url.searchParams.delete('login_error')
+  window.history.replaceState(window.history.state, '', url)
+  return LOGIN_ERROR_MESSAGES[code] ?? null
+}
+
+const initialLoginError = consumeLoginError()
+
 function RoutedContent() {
   const location = useLocation()
   return (
@@ -24,7 +40,13 @@ function RoutedContent() {
 export default function App() {
   const [currentUsername, setCurrentUsername] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [showLogin, setShowLogin] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(initialLoginError)
+  const [showLogin, setShowLogin] = useState(loginError !== null)
+
+  const closeLogin = () => {
+    setShowLogin(false)
+    setLoginError(null)
+  }
 
   useEffect(() => {
     checkAuth().then(username => {
@@ -57,11 +79,11 @@ export default function App() {
 
         {showLogin && (
           <div
-            onClick={() => setShowLogin(false)}
+            onClick={closeLogin}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs"
           >
             <div onClick={e => e.stopPropagation()} className="w-full max-w-xs animate-in fade-in zoom-in duration-200">
-              <LoginPage onLoginSuccess={() => setShowLogin(false)} />
+              <LoginPage error={loginError} />
             </div>
           </div>
         )}

@@ -10,11 +10,6 @@ class User(BaseModel):
     password_hash: str
 
 
-class UserCreate(BaseModel):
-    username: str
-    password: str
-
-
 class TasteType(BaseModel):
     id: int | None = None
     name: str
