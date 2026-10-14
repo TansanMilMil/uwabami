@@ -8,6 +8,7 @@ import drink_ai
 from image_utils import normalize_to_jpeg_bytes
 from models import DrinkCreate, DrinkUpdate, Drink, DrinkDetail, DrinkSuggestResponse
 from routers.auth import get_current_user, get_optional_user
+from routers.image import UPLOADS_DIR
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -163,4 +164,5 @@ def delete_drink(drink_id: int, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     repo.delete_drink(drink_id)
+    (UPLOADS_DIR / f"drink_{drink_id}.jpg").unlink(missing_ok=True)
     return {"ok": True}
