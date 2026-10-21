@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 
 from fastapi import HTTPException
@@ -8,6 +9,8 @@ from openai import OpenAI
 OPENAI_API_KEY = os.environ.get("UWABAMI_OPENAI_API_KEY")
 DRINK_SUGGEST_MODEL = os.environ.get("UWABAMI_OPENAI_DRINK_SUGGEST_MODEL", "gpt-4o-mini")
 DRINK_SUGGEST_IMAGE_MODEL = os.environ.get("UWABAMI_OPENAI_DRINK_SUGGEST_IMAGE_MODEL", "gpt-4o-mini")
+
+logger = logging.getLogger(__name__)
 
 DRINK_SUGGEST_INSTRUCTIONS = (
     "あなたはお酒（日本酒・ワイン・ウイスキー・焼酎・ビール・その他あらゆる酒類）の"
@@ -65,8 +68,9 @@ def suggest_drink_info(name, category_candidates, origin_candidates, taste_type_
             tools=[{"type": "web_search_preview"}],
             timeout=30,
         )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI APIの呼び出しに失敗しました: {e}")
+    except Exception:
+        logger.exception("OpenAI API call failed")
+        raise HTTPException(status_code=502, detail="OpenAI APIの呼び出しに失敗しました")
 
     content = response.output_text
     if not content:
@@ -74,8 +78,9 @@ def suggest_drink_info(name, category_candidates, origin_candidates, taste_type_
 
     try:
         parsed = json.loads(content)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"OpenAIのレスポンス解析に失敗しました: {e}")
+    except json.JSONDecodeError:
+        logger.exception("Failed to parse OpenAI response")
+        raise HTTPException(status_code=500, detail="OpenAIのレスポンス解析に失敗しました")
 
     if not isinstance(parsed, dict):
         raise HTTPException(status_code=500, detail="OpenAIのレスポンス形式が不正です")
@@ -124,6 +129,9 @@ def _build_image_user_prompt(name_hint, category_candidates, origin_candidates, 
 
 
 def suggest_drink_info_from_image(image_bytes, name_hint, category_candidates, origin_candidates, taste_type_candidates):
+    if name_hint and len(name_hint) > 100:
+        raise HTTPException(status_code=400, detail="お酒の名前は100文字以内で入力してください")
+
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY が設定されていません")
 
@@ -147,8 +155,9 @@ def suggest_drink_info_from_image(image_bytes, name_hint, category_candidates, o
             ],
             timeout=30,
         )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI APIの呼び出しに失敗しました: {e}")
+    except Exception:
+        logger.exception("OpenAI API call failed")
+        raise HTTPException(status_code=502, detail="OpenAI APIの呼び出しに失敗しました")
 
     content = response.choices[0].message.content
     if not content:
@@ -156,8 +165,9 @@ def suggest_drink_info_from_image(image_bytes, name_hint, category_candidates, o
 
     try:
         parsed = json.loads(content)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"OpenAIのレスポンス解析に失敗しました: {e}")
+    except json.JSONDecodeError:
+        logger.exception("Failed to parse OpenAI response")
+        raise HTTPException(status_code=500, detail="OpenAIのレスポンス解析に失敗しました")
 
     if not isinstance(parsed, dict):
         raise HTTPException(status_code=500, detail="OpenAIのレスポンス形式が不正です")
