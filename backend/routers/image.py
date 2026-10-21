@@ -1,11 +1,10 @@
-import io
 import os
 import pathlib
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from PIL import Image, ImageOps
 
 from db import repo
+from image_utils import normalize_to_jpeg_bytes
 from routers.auth import get_current_user
 
 UPLOADS_DIR = pathlib.Path(os.environ.get("UPLOADS_DIR", "/app/uploads"))
@@ -39,26 +38,13 @@ def upload_drink_image(
         raise HTTPException(status_code=413, detail="ファイルサイズが20MBを超えています")
 
     try:
-        img = Image.open(io.BytesIO(raw))
-        img.load()
+        jpeg_bytes = normalize_to_jpeg_bytes(raw, MAX_IMAGE_LONG_SIDE, quality=80)
     except Exception:
         raise HTTPException(status_code=422, detail="画像の読み込みに失敗しました")
 
-    img = ImageOps.exif_transpose(img)
-
-    if img.mode == "RGBA":
-        background = Image.new("RGB", img.size, (255, 255, 255))
-        background.paste(img, mask=img.split()[3])
-        img = background
-    elif img.mode != "RGB":
-        img = img.convert("RGB")
-
-    if max(img.size) > MAX_IMAGE_LONG_SIDE:
-        img.thumbnail((MAX_IMAGE_LONG_SIDE, MAX_IMAGE_LONG_SIDE))
-
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     image_name = f"drink_{id}.jpg"
-    img.save(UPLOADS_DIR / image_name, format="JPEG", quality=80)
+    (UPLOADS_DIR / image_name).write_bytes(jpeg_bytes)
 
     repo.set_drink_image_path(id, image_name)
     return {"image_path": image_name}
