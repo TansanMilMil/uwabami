@@ -45,18 +45,13 @@ UWABAMI_IMAGE_TAG=<sha> docker compose up -d --no-build
 
 ### venus の初回セットアップ
 
-リポジトリは private なので、`git fetch` と GHCR からの pull に同じ classic PAT を使う。スコープは `repo` と `read:packages`（fine-grained PAT は GHCR で使えない）。
-
 ```bash
-# 1. GHCR にログイン（パスワードに PAT を入力する）
+# 1. GHCR にログイン（read:packages だけを付けた classic PAT をパスワードに入力する。fine-grained PAT は GHCR で使えない）
+#    nina-njaa のセットアップで同じアカウントでログイン済みなら不要
 docker login ghcr.io -u TansanMilMil
 
-# 2. git fetch 用に同じ PAT を保存する（~/.git-credentials に平文で保存されるので権限を絞る）
-git config --global credential.https://github.com.helper store
-printf 'https://TansanMilMil:%s@github.com\n' '<PAT>' >> ~/.git-credentials
-chmod 600 ~/.git-credentials
-
-# 3. rsync で置いていたディレクトリを git 管理に切り替える（db/ と logs/ は .gitignore 対象なので残る）
+# 2. rsync で置いていたディレクトリを git 管理に切り替える（db/ と logs/ は .gitignore 対象なので残る）
+#    リポジトリは public なので、git fetch に認証は要らない
 #    ~/uwabami/.env はデプロイ済みコミットの記録に使うので、残っていれば中身を確認してから消す
 cd /home/alma/uwabami
 git init
@@ -64,7 +59,7 @@ git remote add origin https://github.com/TansanMilMil/uwabami.git
 git fetch origin main
 git reset --hard origin/main
 
-# 4. timer を登録する
+# 3. timer を登録する
 sudo cp deploy/venus/uwabami-deploy.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now uwabami-deploy.timer
