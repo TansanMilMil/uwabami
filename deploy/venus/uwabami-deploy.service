@@ -1,0 +1,9 @@
+[Unit]
+Description=Deploy uwabami from GHCR
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=alma
+ExecStart=/home/alma/uwabami/deploy/venus/pull-deploy.sh

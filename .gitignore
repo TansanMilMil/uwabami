@@ -20,8 +20,8 @@ backups/
 
 # OS / Editor
 .DS_Store
-.vscode/
-.idea/
+.vscode
+.idea
 
 # Project specifics
 *.log
@@ -29,3 +29,16 @@ coverage/
 
 backend/uploads/*
 /logs/
+
+# Sandbox / local tooling
+/.bash_profile
+/.bashrc
+/.gitconfig
+/.gitmodules
+/.profile
+/.ripgreprc
+/.zprofile
+/.zshrc
+.mcp.json
+.claude/
+copy_script.py

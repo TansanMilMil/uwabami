@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# デプロイ先サーバーとディレクトリの設定 (deploy.sh と合わせる)
+# デプロイ先サーバーとディレクトリの設定
 TARGET_HOST="venus"
 TARGET_DIR="~/uwabami"
 

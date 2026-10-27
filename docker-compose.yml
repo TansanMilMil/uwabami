@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/tansanmilmil/uwabami-backend:${UWABAMI_IMAGE_TAG:-local}
     build: ./backend
     environment:
       - UWABAMI_GOOGLE_CLIENT_ID=${UWABAMI_GOOGLE_CLIENT_ID}
@@ -17,6 +18,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/tansanmilmil/uwabami-frontend:${UWABAMI_IMAGE_TAG:-local}
     build:
       context: ./frontend
     volumes:
@@ -25,6 +27,7 @@ services:
       - app-net
 
   nginx:
+    image: ghcr.io/tansanmilmil/uwabami-nginx:${UWABAMI_IMAGE_TAG:-local}
     build:
       context: ./nginx
     environment:

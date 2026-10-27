@@ -22,11 +22,53 @@ Googleアカウントでのみログインできる（OpenID Connect の認可�
 
 ## デプロイ
 
+main に push すると自動でデプロイされる。
+
+1. GitHub Actions（`.github/workflows/build-images.yml`）が backend・frontend・nginx のイメージをビルドし、`ghcr.io/tansanmilmil/uwabami-<service>:<コミットSHA>` を push する
+2. venus の systemd timer（`uwabami-deploy.timer`）が2分ごとに `deploy/venus/pull-deploy.sh` を実行する。`origin/main` が前回デプロイしたコミットと違えば、そのコミットに `git reset --hard` し、イメージを pull して `docker compose up -d --no-build` で入れ替える
+3. イメージがまだ無い（ビルド中・ビルド失敗）コミットは、コードを元に戻して次の回に再試行する
+
+デプロイ済みのコミットは venus の `/home/alma/uwabami/.env` の `UWABAMI_IMAGE_TAG` に記録される。ログは `journalctl -u uwabami-deploy` で見る。本番DBをローカルに複製するときは `task db:pull` を使う。
+
+イメージ名に付くタグは `UWABAMI_IMAGE_TAG` で決まり、未設定なら `local`。ローカルで `docker compose up -d --build` すると `:local` としてビルドされ、GHCR からは取得しない。
+
+### ロールバック
+
+venus で戻したいコミットを指定して入れ替える。main を戻さない限り、次に main が更新されたときに最新へ戻る。
+
 ```bash
-task deploy
+cd /home/alma/uwabami
+git reset --hard <sha>
+UWABAMI_IMAGE_TAG=<sha> docker compose pull
+UWABAMI_IMAGE_TAG=<sha> docker compose up -d --no-build
 ```
 
-venus の `~/uwabami` に rsync し、`docker compose build` してから起動し直す。`.env` と `db/*.db` は転送しない。本番DBをローカルに複製するときは `task db:pull` を使う。
+### venus の初回セットアップ
+
+リポジトリは private なので、`git fetch` と GHCR からの pull に同じ classic PAT を使う。スコープは `repo` と `read:packages`（fine-grained PAT は GHCR で使えない）。
+
+```bash
+# 1. GHCR にログイン（パスワードに PAT を入力する）
+docker login ghcr.io -u TansanMilMil
+
+# 2. git fetch 用に同じ PAT を保存する（~/.git-credentials に平文で保存されるので権限を絞る）
+git config --global credential.https://github.com.helper store
+printf 'https://TansanMilMil:%s@github.com\n' '<PAT>' >> ~/.git-credentials
+chmod 600 ~/.git-credentials
+
+# 3. rsync で置いていたディレクトリを git 管理に切り替える（db/ と logs/ は .gitignore 対象なので残る）
+#    ~/uwabami/.env はデプロイ済みコミットの記録に使うので、残っていれば中身を確認してから消す
+cd /home/alma/uwabami
+git init
+git remote add origin https://github.com/TansanMilMil/uwabami.git
+git fetch origin main
+git reset --hard origin/main
+
+# 4. timer を登録する
+sudo cp deploy/venus/uwabami-deploy.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now uwabami-deploy.timer
+```
 
 ## 本番環境の構成
 
@@ -35,7 +77,7 @@ venus の `~/uwabami` に rsync し、`docker compose build` してから起動�
 ### サーバー
 
 - さくらのVPS `venus`（`os3-386-26416.vs.sakura.ne.jp`）。SSHユーザーは `alma`
-- 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する
+- 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する。デプロイの timer は `deploy/venus/pull-deploy.sh` の中で `~/.env` を読み込む
 - `UWABAMI_JWT_SECRET_KEY` が未設定だとbackendは起動しない。本番の値は64文字の独自値
 - `UWABAMI_GOOGLE_CLIENT_ID` / `UWABAMI_GOOGLE_CLIENT_SECRET` / `UWABAMI_GOOGLE_REDIRECT_URI` / `UWABAMI_GOOGLE_ALLOWED_ACCOUNTS` のどれかが未設定でもbackendは起動しない。`UWABAMI_BASIC_AUTH_USER` / `UWABAMI_BASIC_AUTH_PASS` は使わない
 - nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。各行の先頭はリクエストのHost、その次のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。行末の `rid=` はnginxの `$request_id`（リクエストごとの32桁のID。Slack通知の `request_id` と同じ値）。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
