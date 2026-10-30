@@ -2,6 +2,7 @@ import base64
 import hashlib
 import os
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -22,6 +23,7 @@ if not JWT_SECRET_KEY:
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("UWABAMI_JWT_EXPIRE_MINUTES", "15"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("UWABAMI_REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+REFRESH_REUSE_GRACE_SECONDS = 30
 SECURE_COOKIE = os.environ.get("UWABAMI_SECURE_COOKIE", "true").lower() == "true"
 AUTH_COOKIE_PATH = "/api/auth"
 
@@ -64,27 +66,24 @@ _REFRESH_COOKIE_KWARGS = {"httponly": True, "samesite": "lax", "secure": SECURE_
 _OAUTH_COOKIE_KWARGS = {"httponly": True, "samesite": "lax", "secure": SECURE_COOKIE, "path": OAUTH_COOKIE_PATH}
 
 
-def create_access_token(user_id: int, username: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
-    return jwt.encode({"sub": str(user_id), "username": username, "type": "access", "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+def _encode(payload: dict) -> str:
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-def create_refresh_token(user_id: int, username: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    return jwt.encode({"sub": str(user_id), "username": username, "type": "refresh", "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-
-def set_auth_cookies(response: Response, user_id: int, username: str) -> None:
+def set_auth_cookies(response: Response, session: dict, username: str) -> None:
+    now = int(time.time())
+    access_exp = min(now + JWT_EXPIRE_MINUTES * 60, session["expires_at"])
+    claims = {"sub": str(session["user_id"]), "username": username, "sid": session["id"]}
     response.set_cookie(
         ACCESS_COOKIE_NAME,
-        create_access_token(user_id, username),
-        max_age=JWT_EXPIRE_MINUTES * 60,
+        _encode({**claims, "type": "access", "exp": access_exp}),
+        max_age=access_exp - now,
         **_ACCESS_COOKIE_KWARGS,
     )
     response.set_cookie(
         REFRESH_COOKIE_NAME,
-        create_refresh_token(user_id, username),
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        _encode({**claims, "type": "refresh", "jti": session["refresh_jti"], "exp": session["expires_at"]}),
+        max_age=session["expires_at"] - now,
         **_REFRESH_COOKIE_KWARGS,
     )
 
@@ -101,16 +100,27 @@ def _get_allowed_user(user_id: int) -> dict | None:
     return user
 
 
-def _decode_user(token: str | None, token_type: str) -> dict | None:
+def _decode_token(token: str | None, token_type: str) -> dict | None:
     if not token:
         return None
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != token_type:
+        if payload.get("type") != token_type or not isinstance(payload.get("sid"), str):
             return None
-        return _get_allowed_user(int(payload["sub"]))
+        payload["user_id"] = int(payload["sub"])
+        return payload
     except (jwt.InvalidTokenError, KeyError, ValueError):
         return None
+
+
+def _decode_user(token: str | None) -> dict | None:
+    payload = _decode_token(token, "access")
+    if payload is None:
+        return None
+    session = repo.get_auth_session(payload["sid"])
+    if session is None or session["user_id"] != payload["user_id"]:
+        return None
+    return _get_allowed_user(payload["user_id"])
 
 
 def get_current_user(request: Request) -> dict:
@@ -121,7 +131,7 @@ def get_current_user(request: Request) -> dict:
 
 
 def get_optional_user(request: Request) -> dict | None:
-    return _decode_user(request.cookies.get(ACCESS_COOKIE_NAME), "access")
+    return _decode_user(request.cookies.get(ACCESS_COOKIE_NAME))
 
 
 def _get_or_create_user(username: str) -> dict:
@@ -233,23 +243,33 @@ def google_callback(request: Request, code: str | None = None, state: str | None
     user = _get_or_create_user(username)
     response = RedirectResponse("/", status_code=status.HTTP_302_FOUND)
     response.delete_cookie(OAUTH_COOKIE, **_OAUTH_COOKIE_KWARGS)
-    set_auth_cookies(response, user["id"], user["username"])
+    repo.delete_expired_auth_sessions()
+    session = repo.create_auth_session(user["id"], int(time.time()) + REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600)
+    set_auth_cookies(response, session, user["username"])
     return response
 
 
 @router.post("/api/auth/refresh")
 @limiter.limit("20/minute")
 def refresh(request: Request, response: Response):
-    user = _decode_user(request.cookies.get(REFRESH_COOKIE_NAME), "refresh")
+    payload = _decode_token(request.cookies.get(REFRESH_COOKIE_NAME), "refresh")
+    session = None
+    if payload is not None and isinstance(payload.get("jti"), str):
+        session = repo.rotate_refresh_jti(payload["sid"], payload["jti"], REFRESH_REUSE_GRACE_SECONDS)
+    user = _get_allowed_user(session["user_id"]) if session and session["user_id"] == payload["user_id"] else None
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    set_auth_cookies(response, user["id"], user["username"])
+    set_auth_cookies(response, session, user["username"])
     return {"id": user["id"], "username": user["username"]}
 
 
 @router.post("/api/auth/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
+    for name, token_type in ((REFRESH_COOKIE_NAME, "refresh"), (ACCESS_COOKIE_NAME, "access")):
+        payload = _decode_token(request.cookies.get(name), token_type)
+        if payload is not None:
+            repo.delete_auth_session(payload["sid"])
     clear_auth_cookies(response)
     return {"ok": True}
 

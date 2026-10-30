@@ -1,5 +1,7 @@
 import os
+import secrets
 import sqlite3
+import time
 from typing import List, Optional
 
 _SCHEMA_STATEMENTS = (
@@ -50,7 +52,20 @@ _SCHEMA_STATEMENTS = (
         FOREIGN KEY (drink_id) REFERENCES drinks(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
+    """,
     """
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        refresh_jti TEXT NOT NULL,
+        prev_refresh_jti TEXT,
+        rotated_at INTEGER,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at)",
 )
 
 class SQLiteDrinkRepository:
@@ -256,3 +271,65 @@ class SQLiteDrinkRepository:
         with self._connect() as con:
             row = con.execute("SELECT * FROM drink_logs WHERE id = ?", (log_id,)).fetchone()
             return dict(row) if row else None
+
+    def create_auth_session(self, user_id: int, expires_at: int) -> dict:
+        session = {
+            "id": secrets.token_urlsafe(32),
+            "user_id": user_id,
+            "refresh_jti": secrets.token_urlsafe(32),
+            "expires_at": expires_at,
+        }
+        with self._connect() as con:
+            con.execute(
+                "INSERT INTO auth_sessions (id, user_id, refresh_jti, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+                (session["id"], user_id, session["refresh_jti"], int(time.time()), expires_at),
+            )
+        return session
+
+    def get_auth_session(self, session_id: str) -> Optional[dict]:
+        with self._connect() as con:
+            row = con.execute(
+                "SELECT id, user_id, refresh_jti, expires_at FROM auth_sessions WHERE id = ? AND expires_at > ?",
+                (session_id, int(time.time())),
+            ).fetchone()
+            return dict(row) if row else None
+
+    def rotate_refresh_jti(self, session_id: str, presented_jti: str, grace_seconds: int) -> Optional[dict]:
+        """refresh token を使い捨てにする。使用済みの jti が猶予外で来たら盗用とみなしてセッションごと失効させる。
+
+        猶予内の直前の jti は、複数タブがほぼ同時に refresh した場合なので、入れ替えずに現在のセッションを返す。
+        """
+        now = int(time.time())
+        new_jti = secrets.token_urlsafe(32)
+        with self._connect() as con:
+            cur = con.execute(
+                """
+                UPDATE auth_sessions
+                SET prev_refresh_jti = refresh_jti, refresh_jti = ?, rotated_at = ?
+                WHERE id = ? AND refresh_jti = ? AND expires_at > ?
+                """,
+                (new_jti, now, session_id, presented_jti, now),
+            )
+            if cur.rowcount == 1:
+                row = con.execute(
+                    "SELECT id, user_id, refresh_jti, expires_at FROM auth_sessions WHERE id = ?", (session_id,)
+                ).fetchone()
+                return dict(row)
+            row = con.execute(
+                "SELECT id, user_id, refresh_jti, prev_refresh_jti, rotated_at, expires_at FROM auth_sessions WHERE id = ? AND expires_at > ?",
+                (session_id, now),
+            ).fetchone()
+            if row is None:
+                return None
+            if row["prev_refresh_jti"] == presented_jti and now - row["rotated_at"] <= grace_seconds:
+                return {k: row[k] for k in ("id", "user_id", "refresh_jti", "expires_at")}
+            con.execute("DELETE FROM auth_sessions WHERE id = ?", (session_id,))
+            return None
+
+    def delete_auth_session(self, session_id: str) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM auth_sessions WHERE id = ?", (session_id,))
+
+    def delete_expired_auth_sessions(self) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM auth_sessions WHERE expires_at <= ?", (int(time.time()),))
