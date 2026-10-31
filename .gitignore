@@ -42,3 +42,4 @@ backend/uploads/*
 .mcp.json
 .claude/
 copy_script.py
+.deploy-failed
