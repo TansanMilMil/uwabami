@@ -76,7 +76,6 @@ sudo systemctl enable --now uwabami-deploy.timer
 - `UWABAMI_JWT_SECRET_KEY` が未設定だとbackendは起動しない。本番の値は64文字の独自値
 - `UWABAMI_GOOGLE_CLIENT_ID` / `UWABAMI_GOOGLE_CLIENT_SECRET` / `UWABAMI_GOOGLE_REDIRECT_URI` / `UWABAMI_GOOGLE_ALLOWED_ACCOUNTS` のどれかが未設定でもbackendは起動しない。`UWABAMI_BASIC_AUTH_USER` / `UWABAMI_BASIC_AUTH_PASS` は使わない
 - nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。各行の先頭はリクエストのHost、その次のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。行末の `rid=` はnginxの `$request_id`（リクエストごとの32桁のID。Slack通知の `request_id` と同じ値）。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
-- 遮断リスト（JPCERTのIoCなど）は、venus の `~/.env` の `VENUS_NGINX_BLOCKLIST_DIR`（`/home/alma/venus-monitoring/nginx-blocklist`）を `/etc/nginx/blocklist` にマウントして読む。未設定だとリポジトリ内の空のリストが使われ、何も遮断しない
 - 利用者のIPを取るには、CloudFrontのオリジンリクエストポリシーで `CloudFront-Viewer-Address` を転送する必要がある（`AllViewerAndCloudFrontHeaders-2022-06`）。2026-10-09 時点では `AllViewer` で転送していない
 - 同じホストで動いているPJ
 
